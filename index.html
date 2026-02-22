@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depth Charge Optimizer</title>
+<style>
+  :root {
+    /* Light Theme (Default) */
+    --bg-page: #f8fafc;
+    --bg-panel: #ffffff;
+    --border: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-light: #eff6ff;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --focus-ring: rgba(37, 99, 235, 0.2);
+  }
+
+  [data-theme="dark"] {
+    /* Dark Theme */
+    --bg-page: #0f172a;
+    --bg-panel: #1e293b;
+    --border: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-light: #1e3a8a;
+    --success: #10b981;
+    --success-light: #064e3b;
+    --focus-ring: rgba(59, 130, 246, 0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  /* Layout */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .header h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .header .subtitle {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-left: 0.75rem;
+    font-weight: 400;
+  }
+
+  .theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .theme-toggle:hover { background-color: var(--accent-light); }
+  .theme-toggle svg { width: 18px; height: 18px; fill: currentColor; }
+
+  .app-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden; /* Prevent page scroll */
+    padding: 1.5rem;
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* Left Panel (Inputs) */
+  .sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto; /* Scrollable internal if screen is too short */
+    padding-right: 0.5rem;
+  }
+
+  /* Right Panel (Results) */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 1rem;
+  }
+
+  /* Cards */
+  .panel {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+
+  .panel-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  /* Forms */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 0.375rem; }
+  .field-group.full { grid-column: 1 / -1; }
+
+  label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+
+  input[type="number"] {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+
+  .field-hint { font-size: 0.7rem; color: var(--text-muted); }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 1rem;
+  }
+  .btn:hover { background-color: var(--accent-hover); }
+
+  .upgrade-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.875rem;
+  }
+  .upgrade-info .val { font-weight: 600; color: var(--text-main); }
+
+  /* Stats Row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+
+  .stat-card {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+  .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+  .stat-val.highlight { color: var(--accent); }
+
+  /* Tile Chips */
+  .tile-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .chip {
+    background-color: var(--bg-page);
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .chip .tier { font-weight: 600; color: var(--text-muted); }
+  .chip .pct { color: var(--text-main); }
+
+  /* Table Area */
+  .table-container {
+    flex: 1; /* Take remaining vertical space */
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-y: auto; /* Internal scroll only */
+    position: relative;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-panel);
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background-color: var(--bg-page); }
+
+  tr.best-row td { background-color: var(--success-light); }
+  tr.best-row td.flips { font-weight: 700; color: var(--success); }
+  tr.best-row td.winrate { font-weight: 700; color: var(--success); }
+
+  .badge {
+    display: inline-block;
+    background-color: var(--success);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+    vertical-align: text-top;
+  }
+
+  .bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background-color: var(--accent);
+    border-radius: 4px;
+  }
+
+  tr.best-row .bar-fill { background-color: var(--success); }
+
+  /* States */
+  .empty-state, .loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  @media (max-width: 768px) {
+    body { height: auto; overflow: auto; }
+    .app-layout { flex-direction: column; height: auto; overflow: visible; }
+    .sidebar { width: 100%; overflow: visible; }
+    .table-container { min-height: 400px; overflow: visible; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div>
+    <h1>Depth Charge <span class="subtitle">Win Rate Calculator</span></h1>
+  </div>
+  <button class="theme-toggle" id="theme-btn" title="Toggle Light/Dark Mode" onclick="toggleTheme()">
+    <!-- SVG Moon Icon -->
+    <svg id="theme-icon" viewBox="0 0 24 24">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+</header>
+
+<div class="app-layout">
+  <!-- Left Sidebar (Inputs) -->
+  <aside class="sidebar">
+    <div class="panel">
+      <div class="panel-title">Configuration</div>
+      
+      <div class="form-grid">
+        <div class="field-group">
+          <label>Max Tile Num</label>
+          <input type="number" id="MAX_TILE" value="3" min="1" max="20">
+          <span class="field-hint">"Numbas" value</span>
+        </div>
+        <div class="field-group">
+          <label>Bettah Mult</label>
+          <input type="number" id="BETTAH_MULT" value="1.8" min="1" step="0.1">
+        </div>
+        <div class="field-group">
+          <label>Board Size</label>
+          <input type="number" id="BOARD_SIZE" value="20" min="5">
+        </div>
+        <div class="field-group">
+          <label>Bombs</label>
+          <input type="number" id="BOMBS" value="3" min="0">
+        </div>
+        <div class="field-group">
+          <label>Lives</label>
+          <input type="number" id="LIVES" value="3" min="1">
+        </div>
+        <div class="field-group">
+          <label>Opponent HP</label>
+          <input type="number" id="OPPONENT_HP" value="800" min="1">
+        </div>
+        <div class="field-group full">
+          <label>Damage per Point</label>
+          <input type="number" id="DAMAGE" value="14" min="1">
+        </div>
+      </div>
+
+      <button class="btn" onclick="runCalc()">Calculate Strategy</button>
+    </div>
+
+    <div class="upgrade-info" id="upgrade-info" style="display:none">
+      <div><span class="field-hint">Upgrade Roll</span> <br> <span class="val mono" id="upgrade-pct">—</span></div>
+      <div style="text-align:right"><span class="field-hint">Target Score</span> <br> <span class="val mono" id="target-pts">—</span></div>
+    </div>
+  </aside>
+
+  <!-- Right Content (Results) -->
+  <main class="main-content">
+    <div class="stats-row" id="stats-row" style="display:none">
+      <div class="stat-card">
+        <span class="stat-label">Optimal Flips</span>
+        <span class="stat-val highlight mono" id="stat-best-k">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Peak Win Rate</span>
+        <span class="stat-val highlight mono" id="stat-best-win">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Safe Tiles</span>
+        <span class="stat-val mono" id="stat-safe">—</span>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div id="loading" class="loading-state" style="display:none">Computing Exact Probabilities...</div>
+      
+      <div id="results-content" style="display:none">
+        <div style="padding: 1rem 1rem 0 1rem;">
+          <div class="tile-chips" id="tile-dist"></div>
+        </div>
+        <table id="results-table">
+          <thead>
+            <tr>
+              <th style="width: 15%">Flips</th>
+              <th style="width: 25%">Win Rate</th>
+              <th style="width: 60%">Probability Visual</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+
+      <div id="empty-state" class="empty-state">
+        Configure parameters and press Calculate
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// --- Math/Game Logic (Unchanged) ---
+function comb(n, k) {
+  if (k < 0 || k > n) return 0;
+  if (k === 0 || k === n) return 1;
+  k = Math.min(k, n - k);
+  let r = 1;
+  for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+  return r;
+}
+
+function upgradeProb(qty3) {
+  return 0.14 + Math.min(0.06, qty3 / 2000.0) + Math.min(0.5, 0.5 * qty3 / (qty3 + 1500.0));
+}
+
+function tileDistribution(qty1, qty3) {
+  const p_up = upgradeProb(qty3);
+  const maxTier = Math.floor(qty1) + 1;
+  const baseFrac = Math.min(12.0, qty3 / 150.0);
+  const p_base = {};
+  let totalP = 0;
+
+  for (let tier = 1; tier <= maxTier; tier++) {
+    let p;
+    if (tier < maxTier) p = Math.max(0, Math.min(baseFrac + 1, tier) - Math.max(baseFrac, tier - 1));
+    else p = Math.max(0, (baseFrac + 1) - Math.max(baseFrac, qty1));
+    p_base[tier] = p;
+    totalP += p;
+  }
+
+  if (totalP > 0) for (const t in p_base) p_base[t] /= totalP;
+
+  const finalDist = {};
+  for (let baseTier = 1; baseTier <= maxTier; baseTier++) {
+    const bp = p_base[baseTier] || 0;
+    if (bp <= 0) continue;
+    const upgradesPossible = maxTier - baseTier;
+    for (let finalTier = baseTier; finalTier <= maxTier; finalTier++) {
+      const steps = finalTier - baseTier;
+      let p;
+      if (steps === upgradesPossible) p = Math.pow(p_up, steps);
+      else p = Math.pow(p_up, steps) * (1 - p_up);
+      finalDist[finalTier] = (finalDist[finalTier] || 0) + bp * p;
+    }
+  }
+  return finalDist;
+}
+
+function evaluateGameExact(target, lives, boardSize, bombs, dist) {
+  const safeTiles = boardSize - bombs;
+  const maxK = safeTiles;
+  const results = {};
+  let bestK = 1, bestWin = -1;
+
+  for (let k = 1; k <= maxK; k++) {
+    const pSurvive = comb(safeTiles, k) / comb(boardSize, k);
+
+    let prodDist = { 1: 1.0 };
+    for (let i = 0; i < k; i++) {
+      const newDist = {};
+      for (const v1 in prodDist) {
+        for (const v2 in dist) {
+          const p = Number(v1) * Number(v2);
+          const key = Math.min(p, target);
+          newDist[key] = (newDist[key] || 0) + prodDist[v1] * dist[v2];
+        }
+      }
+      prodDist = newDist;
+    }
+
+    const dp = [];
+    for (let s = 0; s <= target; s++) dp[s] = new Float64Array(lives + 1);
+    for (let l = 0; l <= lives; l++) dp[target][l] = 1.0;
+
+    for (let l = 1; l <= lives; l++) {
+      for (let s = target - 1; s >= 0; s--) {
+        let prob = (1 - pSurvive) * dp[s][l - 1];
+        for (const val in prodDist) {
+          const newS = Math.min(s + Number(val), target);
+          prob += pSurvive * prodDist[val] * dp[newS][l];
+        }
+        dp[s][l] = prob;
+      }
+    }
+
+    const w = dp[0][lives];
+    results[k] = w;
+    if (w > bestWin) { bestWin = w; bestK = k; }
+  }
+
+  return { results, bestK, bestWin, safeTiles };
+}
+
+// --- UI Logic ---
+function runCalc() {
+  const MAX_TILE = parseFloat(document.getElementById('MAX_TILE').value);
+  const BETTAH_MULT = parseFloat(document.getElementById('BETTAH_MULT').value);
+  const BOARD_SIZE = parseInt(document.getElementById('BOARD_SIZE').value);
+  const BOMBS = parseInt(document.getElementById('BOMBS').value);
+  const LIVES = parseInt(document.getElementById('LIVES').value);
+  const OPPONENT_HP = parseInt(document.getElementById('OPPONENT_HP').value);
+  const DAMAGE = parseInt(document.getElementById('DAMAGE').value);
+
+  const qty1 = MAX_TILE - 1;
+  const qty3 = Math.round((BETTAH_MULT - 1.0) * 100.0);
+  const target = Math.ceil(OPPONENT_HP / DAMAGE);
+
+  const p_up = upgradeProb(qty3);
+  const dist = tileDistribution(qty1, qty3);
+
+  document.getElementById('upgrade-pct').textContent = (p_up * 100).toFixed(1) + '%';
+  document.getElementById('target-pts').textContent = target;
+  document.getElementById('upgrade-info').style.display = 'flex';
+
+  const tdEl = document.getElementById('tile-dist');
+  tdEl.innerHTML = '';
+  for (const tier in dist) {
+    const chip = document.createElement('div');
+    chip.className = 'chip mono';
+    chip.innerHTML = `<span class="tier">T${tier}</span> <span class="pct">${(dist[tier] * 100).toFixed(1)}%</span>`;
+    tdEl.appendChild(chip);
+  }
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('results-content').style.display = 'none';
+  document.getElementById('stats-row').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+
+  setTimeout(() => {
+    const { results, bestK, bestWin, safeTiles } = evaluateGameExact(target, LIVES, BOARD_SIZE, BOMBS, dist);
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results-content').style.display = 'block';
+    
+    document.getElementById('stat-best-k').textContent = bestK;
+    document.getElementById('stat-best-win').textContent = (bestWin * 100).toFixed(2) + '%';
+    document.getElementById('stat-safe').textContent = safeTiles;
+    document.getElementById('stats-row').style.display = 'grid';
+
+    const maxWin = Math.max(...Object.values(results));
+    const tbody = document.getElementById('table-body');
+    let html = '';
+
+    for (let k = 1; k <= safeTiles; k++) {
+      const w = results[k];
+      const pct = (w * 100).toFixed(2);
+      const barW = maxWin > 0 ? (w / maxWin * 100).toFixed(1) : 0;
+      const isBest = k === bestK;
+      
+      html += `<tr class="${isBest ? 'best-row' : ''}">
+        <td class="flips mono">${k}${isBest ? '<span class="badge">BEST</span>' : ''}</td>
+        <td class="winrate mono">${pct}%</td>
+        <td><div class="bar-bg"><div class="bar-fill" style="width:${barW}%"></div></div></td>
+      </tr>`;
+    }
+    tbody.innerHTML = html;
+  }, 20);
+}
+
+// --- Persistence & Theme ---
+const STORAGE_KEY = 'depth_charge_cfg';
+const THEME_KEY = 'depth_charge_theme';
+const FIELDS = ['MAX_TILE','BETTAH_MULT','BOARD_SIZE','BOMBS','LIVES','OPPONENT_HP','DAMAGE'];
+
+function saveInputs() {
+  const data = {};
+  FIELDS.forEach(id => { data[id] = document.getElementById(id).value; });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadInputs() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!data) return;
+    FIELDS.forEach(id => { if (data[id] != null) document.getElementById(id).value = data[id]; });
+  } catch(_) {}
+}
+
+const moonPath = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
+const sunPath = "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z";
+
+function setTheme(isDark) {
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-icon').innerHTML = `<path d="${isDark ? sunPath : moonPath}" ${isDark ? 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"' : ''}></path>`;
+  localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  setTheme(!isDark);
+}
+
+// Init
+FIELDS.forEach(id => document.getElementById(id).addEventListener('input', saveInputs));
+document.addEventListener('keydown', e => { if (e.key === 'Enter') runCalc(); });
+
+// Load Theme preferences
+const savedTheme = localStorage.getItem(THEME_KEY);
+if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  setTheme(true);
+} else {
+  setTheme(false);
+}
+
+loadInputs();
+// Automatically run if there's saved data
+if (localStorage.getItem(STORAGE_KEY)) runCalc();
+</script>
+</body>
+</html>
