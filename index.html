@@ -436,10 +436,11 @@ function tileDistribution(qty1, qty3) {
   }
   return finalDist;
 }
+// Combo multiplier for display purposes only
 function comboMultiplier(k, comboRate) {
   return 1.0 + comboRate * k;
 }
-function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
+function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate, opponentHp, damagePerPoint) {
   const safeTiles = boardSize - bombs;
   const results = {};
   let bestK = 1, bestWin = -1;
@@ -456,23 +457,19 @@ function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
       }
       scoreDist = newDist;
     }
+    // Apply combo by reducing the effective target for this k rather than
+    // scaling tile values (which causes ceil() to add full integer steps).
     const cm = comboMultiplier(k, comboRate);
-    const bucketedDist = {};
-    for (const s in scoreDist) {
-      const points = Math.ceil(Number(s) * cm);
-      const key = points;
-      bucketedDist[key] = (bucketedDist[key] || 0) + scoreDist[s];
-    }
-    const capT = target;
+    const capT = comboRate > 0 ? Math.ceil(opponentHp / (damagePerPoint * cm)) : target;
     const dp = [];
     for (let s = 0; s <= capT; s++) dp[s] = new Float64Array(lives + 1);
     for (let l = 0; l <= lives; l++) dp[capT][l] = 1.0;
     for (let l = 1; l <= lives; l++) {
       for (let s = capT - 1; s >= 0; s--) {
         let prob = (1 - pSurvive) * dp[s][l - 1];
-        for (const ptsStr in bucketedDist) {
+        for (const ptsStr in scoreDist) {
           const newS = Math.min(s + Number(ptsStr), capT);
-          prob += pSurvive * bucketedDist[ptsStr] * dp[newS][l];
+          prob += pSurvive * scoreDist[ptsStr] * dp[newS][l];
         }
         dp[s][l] = prob;
       }
@@ -485,13 +482,13 @@ function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
 }
 // --- UI Logic ---
 let lastResults = null;
-let currentPrecision = 2;   // 2 = toFixed(2), 0 = full (no toFixed)
+let currentPrecision = 2;
 let currentComboPct = 0;
 
 function formatPercent(w) {
   const p = w * 100;
   if (currentPrecision === 2) return p.toFixed(2);
-  return p.toString();        // no .toFixed call at all
+  return p.toString();
 }
 
 function setPrecision(p) {
@@ -506,6 +503,7 @@ function renderResults() {
   const { results, bestK, bestWin, safeTiles } = lastResults;
   document.getElementById('stat-best-k').textContent = bestK;
   document.getElementById('stat-best-win').textContent = formatPercent(bestWin) + '%';
+  document.getElementById('stat-safe').textContent = safeTiles;
   const maxWin = Math.max(...Object.values(results).map(r => r.win));
   const tbody = document.getElementById('table-body');
   let html = '';
@@ -563,7 +561,7 @@ function runCalc() {
   document.getElementById('precision-control').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
   setTimeout(() => {
-    const { results, bestK, bestWin, safeTiles } = evaluateGameExact(target, LIVES, BOARD_SIZE, BOMBS, dist, comboRate);
+    const { results, bestK, bestWin, safeTiles } = evaluateGameExact(target, LIVES, BOARD_SIZE, BOMBS, dist, comboRate, OPPONENT_HP, DAMAGE);
     lastResults = { results, bestK, bestWin, safeTiles };
     currentComboPct = COMBO_PCT;
     document.getElementById('loading').style.display = 'none';
