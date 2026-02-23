@@ -17,6 +17,8 @@
     --success: #059669;
     --success-light: #d1fae5;
     --focus-ring: rgba(37, 99, 235, 0.3);
+    --warn: #d97706;
+    --warn-light: #fef3c7;
   }
   [data-theme="dark"] {
     --bg-page: #111111;
@@ -30,6 +32,8 @@
     --success: #10b981;
     --success-light: #064e3b;
     --focus-ring: rgba(59, 130, 246, 0.4);
+    --warn: #f59e0b;
+    --warn-light: #292109;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -48,13 +52,39 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     background-color: var(--bg-panel);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    gap: 1rem;
   }
   .header h1 { font-size: 1.25rem; font-weight: 600; margin: 0; }
   .header .subtitle { color: var(--text-muted); font-size: 0.875rem; margin-left: 0.75rem; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 0.75rem; }
+  /* Tab nav */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    background: var(--bg-panel);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text-main); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; flex: 1; overflow: hidden; }
+  .tab-panel.active { display: flex; flex: 1; overflow: hidden; }
   .theme-toggle {
     background: transparent;
     border: 1px solid var(--border);
@@ -278,15 +308,164 @@
     border-color: var(--accent);
   }
   .prec-btn:hover:not(.active) { background-color: var(--accent-light); }
+
+  /* ── Upgrades Tab ── */
+  .upgrades-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    padding: 1.5rem;
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    flex-direction: column;
+  }
+  .upg-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .upg-search {
+    padding: 0.45rem 0.75rem;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.875rem;
+    flex: 1;
+    min-width: 180px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .upg-search:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  .upg-total-bar {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .upg-total-bar strong { color: var(--accent); font-family: ui-monospace, monospace; }
+  .upg-table-wrap {
+    flex: 1;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-y: auto;
+  }
+  .upg-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .upg-table th {
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-panel);
+    padding: 0.65rem 0.9rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+  }
+  .upg-table th:hover { color: var(--text-main); }
+  .upg-table th.sorted { color: var(--accent); }
+  .upg-table th .sort-arrow { margin-left: 4px; opacity: 0.5; }
+  .upg-table th.sorted .sort-arrow { opacity: 1; }
+  .upg-table td {
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    vertical-align: middle;
+  }
+  .upg-table tr:last-child td { border-bottom: none; }
+  .upg-table tr:hover td { background-color: var(--bg-page); }
+  .upg-name { font-weight: 600; color: var(--text-main); white-space: nowrap; }
+  .upg-desc { color: var(--text-muted); font-size: 0.75rem; max-width: 340px; }
+  .upg-desc em { color: var(--warn); font-style: normal; font-weight: 600; }
+  .cost-cell { font-family: ui-monospace, monospace; white-space: nowrap; }
+  .cost-current { color: var(--text-main); font-weight: 600; }
+  .cost-next { color: var(--text-muted); font-size: 0.72rem; }
+  .maxed { color: var(--success); font-weight: 700; }
+  .level-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .stepper-btn {
+    width: 22px; height: 22px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-page);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .stepper-btn:hover { background: var(--accent-light); }
+  .stepper-btn:disabled { opacity: 0.3; cursor: default; }
+  .stepper-input {
+    width: 42px;
+    text-align: center;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-main);
+    padding: 2px 4px;
+    -moz-appearance: textfield;
+  }
+  .stepper-input::-webkit-outer-spin-button,
+  .stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .stepper-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--focus-ring);
+  }
+  .stepper-max { font-size: 0.65rem; color: var(--text-muted); width: 36px; display: inline-block; }
+  .progress-mini { display: flex; flex-direction: row; align-items: center; gap: 6px; min-width: 80px; }
+  .progress-mini .bar-bg { height: 5px; flex: 1; min-width: 40px; }
+  .progress-mini .bar-fill { transition: width 0.2s; }
+  .progress-pct { font-size: 0.65rem; color: var(--text-muted); font-family: monospace; white-space: nowrap; flex-shrink: 0; }
+  .reset-btn {
+    padding: 0.4rem 0.9rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: #ef4444; color: #ef4444; }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
   @media (max-width: 768px) {
     body { height: auto; overflow: auto; }
-    .app-layout { flex-direction: column; height: auto; overflow: visible; }
+    .app-layout, .upgrades-layout { flex-direction: column; height: auto; overflow: visible; }
     .sidebar { width: 100%; overflow: visible; }
     .table-container { min-height: 400px; overflow: visible; }
+    .upg-table-wrap { min-height: 400px; }
+    .tab-panel.active { display: block; overflow: visible; }
   }
 </style>
 </head>
@@ -295,107 +474,382 @@
   <div>
     <h1>Depth Charge <span class="subtitle">Win Rate Calculator</span></h1>
   </div>
-  <button class="theme-toggle" id="theme-btn" title="Toggle Light/Dark Mode" onclick="toggleTheme()">
-    <svg id="theme-icon" viewBox="0 0 24 24">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-    </svg>
-  </button>
+  <div class="header-right">
+    <button class="theme-toggle" id="theme-btn" title="Toggle Light/Dark Mode" onclick="toggleTheme()">
+      <svg id="theme-icon" viewBox="0 0 24 24">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+  </div>
 </header>
-<div class="app-layout">
-  <aside class="sidebar">
-    <div class="panel">
-      <div class="panel-title">Configuration</div>
-      <div class="form-grid">
-        <div class="field-group">
-          <label>Max Tile Num</label>
-          <input type="number" id="MAX_TILE" value="4" min="1" max="20">
-          <span class="field-hint">"Numbas" value</span>
-        </div>
-        <div class="field-group">
-          <label>Bettah Mult</label>
-          <input type="number" id="BETTAH_MULT" value="3" min="1" step="0.1">
-        </div>
-        <div class="field-group">
-          <label>Board Size</label>
-          <input type="number" id="BOARD_SIZE" value="15" min="5">
-        </div>
-        <div class="field-group">
-          <label>Bombs</label>
-          <input type="number" id="BOMBS" value="3" min="0">
-        </div>
-        <div class="field-group">
-          <label>Lives</label>
-          <input type="number" id="LIVES" value="4" min="1">
-        </div>
-        <div class="field-group">
-          <label>Opponent HP</label>
-          <input type="number" id="OPPONENT_HP" value="1803" min="1">
-        </div>
-        <div class="field-group">
-          <label>Damage per Point</label>
-          <input type="number" id="DAMAGE" value="58" min="1">
-        </div>
-        <div class="field-group">
-          <label>Combo Bonus (%)</label>
-          <input type="number" id="COMBO_PCT" value="0" min="0" max="100" step="1">
-          <span class="field-hint">+X% dmg per tile</span>
-        </div>
-      </div>
-      <button class="btn" onclick="runCalc()">Calculate Strategy</button>
-    </div>
 
-    <div class="upgrade-info" id="upgrade-info" style="display:none">
-      <div><span class="field-hint">Upgrade Roll</span> <br> <span class="val mono" id="upgrade-pct">—</span></div>
-      <div style="text-align:right"><span class="field-hint">Target Score</span> <br> <span class="val mono" id="target-pts">—</span></div>
-    </div>
-  </aside>
-  <main class="main-content">
-    <div class="stats-row" id="stats-row" style="display:none">
-      <div class="stat-card">
-        <span class="stat-label">Optimal Flips</span>
-        <span class="stat-val highlight mono" id="stat-best-k">—</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Peak Win Rate</span>
-        <span class="stat-val highlight mono" id="stat-best-win">—</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Safe Tiles</span>
-        <span class="stat-val mono" id="stat-safe">—</span>
-      </div>
-    </div>
-
-    <div id="precision-control" class="precision-control" style="display:none">
-      <button id="prec-2dec" class="prec-btn active" onclick="setPrecision(2)">2 decimals</button>
-      <button id="prec-full" class="prec-btn" onclick="setPrecision(0)">full precision</button>
-    </div>
-
-    <div class="table-container">
-      <div id="loading" class="loading-state" style="display:none">Computing Exact Probabilities...</div>
-      <div id="results-content" style="display:none">
-        <div style="padding: 1rem 1rem 0 1rem;">
-          <div class="tile-chips" id="tile-dist"></div>
-        </div>
-        <table id="results-table">
-          <thead>
-            <tr>
-              <th style="width: 12%">Flips</th>
-              <th style="width: 20%">Win Rate</th>
-              <th style="width: 20%">Eff. Damage</th>
-              <th style="width: 48%">Probability Visual</th>
-            </tr>
-          </thead>
-          <tbody id="table-body"></tbody>
-        </table>
-      </div>
-      <div id="empty-state" class="empty-state">
-        Configure parameters and press Calculate
-      </div>
-    </div>
-  </main>
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('calculator')">Calculator</button>
+  <button class="tab-btn" onclick="switchTab('upgrades')">Upgrades</button>
 </div>
+
+<!-- ═══ CALCULATOR TAB ═══ -->
+<div class="tab-panel active" id="tab-calculator">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="panel">
+        <div class="panel-title">Configuration</div>
+        <div class="form-grid">
+          <div class="field-group">
+            <label>Max Tile Num</label>
+            <input type="number" id="MAX_TILE" value="4" min="1" max="20">
+            <span class="field-hint">"Numbas" value</span>
+          </div>
+          <div class="field-group">
+            <label>Bettah Mult</label>
+            <input type="number" id="BETTAH_MULT" value="3" min="1" step="0.1">
+          </div>
+          <div class="field-group">
+            <label>Board Size</label>
+            <input type="number" id="BOARD_SIZE" value="15" min="5">
+          </div>
+          <div class="field-group">
+            <label>Bombs</label>
+            <input type="number" id="BOMBS" value="3" min="0">
+          </div>
+          <div class="field-group">
+            <label>Lives</label>
+            <input type="number" id="LIVES" value="4" min="1">
+          </div>
+          <div class="field-group">
+            <label>Opponent HP</label>
+            <input type="number" id="OPPONENT_HP" value="1803" min="1">
+          </div>
+          <div class="field-group">
+            <label>Damage per Point</label>
+            <input type="number" id="DAMAGE" value="58" min="1">
+          </div>
+          <div class="field-group">
+            <label>Combo Bonus (%)</label>
+            <input type="number" id="COMBO_PCT" value="0" min="0" max="100" step="1">
+            <span class="field-hint">+X% dmg per tile</span>
+          </div>
+        </div>
+        <button class="btn" onclick="runCalc()">Calculate Strategy</button>
+      </div>
+
+      <div class="upgrade-info" id="upgrade-info" style="display:none">
+        <div><span class="field-hint">Upgrade Roll</span> <br> <span class="val mono" id="upgrade-pct">—</span></div>
+        <div style="text-align:right"><span class="field-hint">Target Score</span> <br> <span class="val mono" id="target-pts">—</span></div>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="stats-row" id="stats-row" style="display:none">
+        <div class="stat-card">
+          <span class="stat-label">Optimal Flips</span>
+          <span class="stat-val highlight mono" id="stat-best-k">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Peak Win Rate</span>
+          <span class="stat-val highlight mono" id="stat-best-win">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Safe Tiles</span>
+          <span class="stat-val mono" id="stat-safe">—</span>
+        </div>
+      </div>
+
+      <div id="precision-control" class="precision-control" style="display:none">
+        <button id="prec-2dec" class="prec-btn active" onclick="setPrecision(2)">2 decimals</button>
+        <button id="prec-full" class="prec-btn" onclick="setPrecision(0)">full precision</button>
+      </div>
+
+      <div class="table-container">
+        <div id="loading" class="loading-state" style="display:none">Computing Exact Probabilities...</div>
+        <div id="results-content" style="display:none">
+          <div style="padding: 1rem 1rem 0 1rem;">
+            <div class="tile-chips" id="tile-dist"></div>
+          </div>
+          <table id="results-table">
+            <thead>
+              <tr>
+                <th style="width: 12%">Flips</th>
+                <th style="width: 20%">Win Rate</th>
+                <th style="width: 20%">Eff. Damage</th>
+                <th style="width: 48%">Probability Visual</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <div id="empty-state" class="empty-state">
+          Configure parameters and press Calculate
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══ UPGRADES TAB ═══ -->
+<div class="tab-panel" id="tab-upgrades">
+  <div class="upgrades-layout">
+    <div class="upg-controls">
+      <input type="text" class="upg-search" id="upg-search" placeholder="Search upgrades…" oninput="renderUpgrades()">
+      <div class="upg-total-bar">Total spent: <strong id="upg-total-cost">0</strong></div>
+      <button class="reset-btn" onclick="resetUpgrades()">Reset All</button>
+    </div>
+    <div class="upg-table-wrap">
+      <table class="upg-table">
+        <thead>
+          <tr>
+            <th onclick="sortUpgrades('name')" id="th-name">Upgrade <span class="sort-arrow">↕</span></th>
+            <th onclick="sortUpgrades('level')" id="th-level">Level <span class="sort-arrow">↕</span></th>
+            <th>Progress</th>
+            <th onclick="sortUpgrades('cost')" id="th-cost">Cost <span class="sort-arrow">↕</span></th>
+            <th onclick="sortUpgrades('total')" id="th-total">Spent Total <span class="sort-arrow">↕</span></th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody id="upg-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
-// --- Math/Game Logic ---
+// ─── Upgrade Data ───────────────────────────────────────────────────────────
+function getRawUpgrades() {
+  return [
+    'Base_Damage_I 9999 1.10 1 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
+    'Numbahs 17 6 1 0 Increase_the_max_possible_Tile_Number_you_can_find_to_$!_These_are_a_MULTI_for_damage!'.split(' '),
+    'Grid_Expansion 16 7.5 1 0 $'.split(' '),
+    'Bettah_Numbahs 9999 1.15 10 0 Boosts_your_odds_of_getting_bigger_Tile_Numbers_by_}x'.split(' '),
+    'Mega_Damage_I 9999 1.12 5 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
+    'Miney_Farmey_I 9999 1.10 10 0 Boosts_the_amount_of_Mine_Currency_you_generate_per_hour_by_+{%'.split(' '),
+    'Extra_Lives 7 250 1 0 Start_each_game_with_+1_extra_life!'.split(' '),
+    'Base_Damage_II 9999 1.10 3 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
+    'Golden_Tiles 16 8 1 0 Click_on_up_to_{_Golden_Tiles_per_game,_which_are_guaranteed_to_be_safe_from_Depth_Charges!'.split(' '),
+    'Big_Hit_Combos 9999 1.30 1 0 Increases_damage_by_+{%_for_every_tile_revealed,_resetting_at_the_start_of_each_turn.'.split(' '),
+    'Boom_Blocker 2 1000000000.0 1 0 Start_each_game_of_Depth_Charge_with_+{_Blocks._Depth_Charges_HATE_this_feature!'.split(' '),
+    'Final_Round_Fury 9999 1.30 2 0 Your_damage_is_}x_higher_when_down_to_your_last_life!'.split(' '),
+    'Multiplier_Madness 10 35 1 0 You_can_now_find_Multiplier_Tiles,_up_to_$!_These_multiply_damage_for_the_current_turn.'.split(' '),
+    "Moar_Moar_Multi's 9999 1.15 6 0 Boosts_your_odds_of_getting_bigger_Multiplier_Tiles_by_}x".split(' '),
+    'Triple_Crown_Hunter 250 1.16 1 0 Tiles_can_now_have_a_Blue_Crown_background,_reveal_3_to_multiply_current_damage_by_$'.split(' '),
+    'Crown_Craze 100 1.40 1 0 Boosts_your_odds_of_revealing_Blue_Crown_backgrounds_by_}x'.split(' '),
+    'Legal_Cheating_Button 20 6 1 0 Reveals_a_Depth_Charges,_has_{_uses,_but_has_a_25%_chance_to_break_until_next_turn!'.split(' '),
+    'Awesome_Additives 10 35 1 0 You_can_now_find_Additive_Tiles,_up_to_$!_These_boost_your_damage_for_the_ENTIRE_game!'.split(' '),
+    'Always_Adding 9999 1.15 5 0 Boosts_your_odds_of_revealing_bigger_Additive_Tiles_by_}x'.split(' '),
+    'Clutch_Overtime_Block 1 100000 1 0 When_down_to_your_last_life,_get_+{_Block!_Depth_Charges_STILL_HATE_this_feature!!!'.split(' '),
+    'Classic_Flags 8 500 1 0 You_can_place_down_{_Flags,_which_show_the_amount_of_surrounding_Depth_Charges!'.split(' '),
+    'Mega_Damage_II 9999 1.10 20 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
+    'Miney_Farmey_II 9999 1.15 15 0 Boosts_the_amount_of_Mine_Currency_you_generate_per_hour_by_+{%'.split(' '),
+    'Jackpot_Time 9999 1.14 1 0 Boosts_your_odds_of_finding_Jackpot_tiles!_You\'ve_currently_got_a_1_in_$_chance!'.split(' '),
+    'Record_Breaking_Jackpots 6 1000 1 0 Jackpot_Tiles_now_reveal_$_tiles_when_found!'.split(' '),
+    'Base_Damage_III 9999 1.10 12 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
+    "El'_Cheapo_Upgrado 9999 1.15 1 0 All_upgrades_are_$%_cheaper,_now_and_forever!".split(' '),
+    'Mega_Damage_III 9999 1.12 50 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
+    'Miney_Damagey_Synergy 9999 1.25 2 0 $'.split(' '),
+    "Rift_Guy's_Upgrade 0 9999999 1 0 Uh,_yea._This_is_MY_upgrade,_NOT_yours._I_maxed_it_out_because_I'm_me,_duh.".split(' '),
+  ];
+}
+
+// [name, maxLevel, costScale, valueIncrement, currentLevel, description]
+// id = index (0-based)
+
+function baseCost(id) {
+  return (5 + id + Math.pow(Math.max(0, id - 2), 1.3)) * Math.pow(2, Math.max(0, id - 4));
+}
+
+function upgradeCost(id, costScale, currentLevel) {
+  // cost to buy the NEXT level (i.e. from currentLevel -> currentLevel+1)
+  return baseCost(id) * Math.pow(costScale, currentLevel);
+}
+
+function totalSpent(id, costScale, currentLevel) {
+  // sum of baseCost * costScale^i for i in [0, currentLevel-1]
+  if (currentLevel === 0) return 0;
+  const b = baseCost(id);
+  const s = costScale;
+  if (Math.abs(s - 1) < 1e-9) return b * currentLevel;
+  return b * (Math.pow(s, currentLevel) - 1) / (s - 1);
+}
+
+function parseUpgrades() {
+  const raw = getRawUpgrades();
+  return raw.map((cols, id) => ({
+    id,
+    name: cols[0].replace(/_/g, ' '),
+    maxLevel: parseInt(cols[1]),
+    costScale: parseFloat(cols[2]),
+    valueIncrement: parseFloat(cols[3]),
+    level: parseInt(cols[4]),
+    descRaw: cols[5] ? cols[5].replace(/_/g, ' ') : '',
+  }));
+}
+
+// Persistent level state (keyed by id)
+const UPG_LEVELS_KEY = 'dc_upg_levels';
+function loadLevels(upgrades) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(UPG_LEVELS_KEY));
+    if (!saved) return;
+    upgrades.forEach(u => {
+      if (saved[u.id] != null) u.level = Math.min(parseInt(saved[u.id]), u.maxLevel);
+    });
+  } catch(_) {}
+}
+function saveLevels(upgrades) {
+  const obj = {};
+  upgrades.forEach(u => { obj[u.id] = u.level; });
+  localStorage.setItem(UPG_LEVELS_KEY, JSON.stringify(obj));
+}
+
+let UPGRADES = parseUpgrades();
+loadLevels(UPGRADES);
+
+let upgSortCol = null;
+let upgSortDir = 1; // 1 asc, -1 desc
+
+function formatNum(n) {
+  if (!isFinite(n)) return '∞';
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return Math.round(n).toLocaleString();
+}
+
+function buildDesc(u) {
+  // Replace { with valueIncrement * level (current value)
+  // } is also sometimes used as a "multiplier" placeholder – treat same way
+  // $ is "special value" – we just italicize it as [?]
+  const val = (u.valueIncrement * u.level).toFixed(
+    Number.isInteger(u.valueIncrement) ? 0 : 2
+  );
+  let d = u.descRaw;
+  d = d.replace(/\{/g, `<em>${val}</em>`);
+  d = d.replace(/\}/g, `<em>${val}</em>`);
+  d = d.replace(/\$/g, '<em>[?]</em>');
+  return d;
+}
+
+function renderUpgrades() {
+  const query = (document.getElementById('upg-search').value || '').toLowerCase();
+
+  let list = UPGRADES.filter(u => !query || u.name.toLowerCase().includes(query) || u.descRaw.toLowerCase().replace(/_/g,' ').includes(query));
+
+  if (upgSortCol) {
+    list = list.slice().sort((a, b) => {
+      let va, vb;
+      if (upgSortCol === 'name') { va = a.name; vb = b.name; return upgSortDir * va.localeCompare(vb); }
+      if (upgSortCol === 'level') { va = a.level; vb = b.level; }
+      if (upgSortCol === 'cost') {
+        va = a.level >= a.maxLevel ? Infinity : upgradeCost(a.id, a.costScale, a.level);
+        vb = b.level >= b.maxLevel ? Infinity : upgradeCost(b.id, b.costScale, b.level);
+      }
+      if (upgSortCol === 'total') {
+        va = totalSpent(a.id, a.costScale, a.level);
+        vb = totalSpent(b.id, b.costScale, b.level);
+      }
+      return upgSortDir * (va - vb);
+    });
+  }
+
+  let totalCost = 0;
+  UPGRADES.forEach(u => { totalCost += totalSpent(u.id, u.costScale, u.level); });
+  document.getElementById('upg-total-cost').textContent = formatNum(totalCost);
+
+  const tbody = document.getElementById('upg-tbody');
+  let html = '';
+  list.forEach(u => {
+    const isMaxed = u.level >= u.maxLevel;
+    const canDec = u.level > 0;
+    const nextCost = isMaxed ? null : upgradeCost(u.id, u.costScale, u.level);
+    const spent = totalSpent(u.id, u.costScale, u.level);
+    const pct = u.maxLevel > 0 ? (u.level / u.maxLevel * 100) : 0;
+    const desc = buildDesc(u);
+
+    const costCell = isMaxed
+      ? `<span class="maxed">MAXED</span>`
+      : `<div class="cost-current">${formatNum(nextCost)}</div>`;
+
+    html += `<tr>
+      <td><div class="upg-name">${u.name}</div></td>
+      <td>
+        <div class="level-stepper">
+          <button class="stepper-btn" onclick="adjustLevel(${u.id},-1)" ${canDec ? '' : 'disabled'}>−</button>
+          <input
+            class="stepper-input"
+            type="number"
+            min="0"
+            max="${u.maxLevel === 9999 ? 999999 : u.maxLevel}"
+            value="${u.level}"
+            onchange="setLevel(${u.id}, this)"
+            onkeydown="if(event.key==='Enter')this.blur()"
+          >
+          <button class="stepper-btn" onclick="adjustLevel(${u.id},+1)" ${isMaxed ? 'disabled' : ''}>+</button>
+          <span class="stepper-max">/ ${u.maxLevel === 9999 ? '∞' : u.maxLevel}</span>
+        </div>
+      </td>
+      <td>
+        <div class="progress-mini">
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,pct).toFixed(1)}%"></div></div>
+          <span class="progress-pct">${u.maxLevel === 9999 ? u.level : pct.toFixed(0) + '%'}</span>
+        </div>
+      </td>
+      <td class="cost-cell">${costCell}</td>
+      <td class="cost-cell"><span style="color:var(--text-muted)">${formatNum(spent)}</span></td>
+      <td><div class="upg-desc">${desc}</div></td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+
+  // Update sort header highlights
+  ['name','level','cost','total'].forEach(col => {
+    const el = document.getElementById('th-' + col);
+    if (!el) return;
+    if (upgSortCol === col) {
+      el.classList.add('sorted');
+      el.querySelector('.sort-arrow').textContent = upgSortDir === 1 ? '↑' : '↓';
+    } else {
+      el.classList.remove('sorted');
+      el.querySelector('.sort-arrow').textContent = '↕';
+    }
+  });
+}
+
+function adjustLevel(id, delta) {
+  const u = UPGRADES[id];
+  u.level = Math.max(0, Math.min(u.maxLevel, u.level + delta));
+  saveLevels(UPGRADES);
+  renderUpgrades();
+}
+
+function setLevel(id, input) {
+  const u = UPGRADES[id];
+  const parsed = parseInt(input.value);
+  u.level = isNaN(parsed) ? u.level : Math.max(0, Math.min(u.maxLevel, parsed));
+  saveLevels(UPGRADES);
+  renderUpgrades();
+}
+
+function resetUpgrades() {
+  UPGRADES.forEach(u => { u.level = 0; });
+  saveLevels(UPGRADES);
+  renderUpgrades();
+}
+
+function sortUpgrades(col) {
+  if (upgSortCol === col) upgSortDir *= -1;
+  else { upgSortCol = col; upgSortDir = 1; }
+  renderUpgrades();
+}
+
+// ─── Tab Switching ───────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'upgrades') renderUpgrades();
+}
+
+// ─── Calculator Logic ────────────────────────────────────────────────────────
 function comb(n, k) {
   if (k < 0 || k > n) return 0;
   if (k === 0 || k === n) return 1;
@@ -436,9 +890,7 @@ function tileDistribution(qty1, qty3) {
   }
   return finalDist;
 }
-function comboMultiplier(k, comboRate) {
-  return 1.0 + comboRate * k;
-}
+function comboMultiplier(k, comboRate) { return 1.0 + comboRate * k; }
 function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
   const safeTiles = boardSize - bombs;
   const results = {};
@@ -460,8 +912,7 @@ function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
     const bucketedDist = {};
     for (const s in scoreDist) {
       const points = Math.ceil(Number(s) * cm);
-      const key = points;
-      bucketedDist[key] = (bucketedDist[key] || 0) + scoreDist[s];
+      bucketedDist[points] = (bucketedDist[points] || 0) + scoreDist[s];
     }
     const capT = target;
     const dp = [];
@@ -483,29 +934,27 @@ function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
   }
   return { results, bestK, bestWin, safeTiles };
 }
-// --- UI Logic ---
+
 let lastResults = null;
-let currentPrecision = 2;   // 2 = toFixed(2), 0 = full (no toFixed)
+let currentPrecision = 2;
 let currentComboPct = 0;
 
 function formatPercent(w) {
   const p = w * 100;
-  if (currentPrecision === 2) return p.toFixed(2);
-  return p.toString();        // no .toFixed call at all
+  return currentPrecision === 2 ? p.toFixed(2) : p.toString();
 }
-
 function setPrecision(p) {
   currentPrecision = p;
   document.getElementById('prec-2dec').classList.toggle('active', p === 2);
   document.getElementById('prec-full').classList.toggle('active', p === 0);
   renderResults();
 }
-
 function renderResults() {
   if (!lastResults) return;
   const { results, bestK, bestWin, safeTiles } = lastResults;
   document.getElementById('stat-best-k').textContent = bestK;
   document.getElementById('stat-best-win').textContent = formatPercent(bestWin) + '%';
+  document.getElementById('stat-safe').textContent = safeTiles;
   const maxWin = Math.max(...Object.values(results).map(r => r.win));
   const tbody = document.getElementById('table-body');
   let html = '';
@@ -524,7 +973,6 @@ function renderResults() {
   }
   tbody.innerHTML = html;
 }
-
 function runCalc() {
   const MAX_TILE = parseFloat(document.getElementById('MAX_TILE').value);
   const BETTAH_MULT = parseFloat(document.getElementById('BETTAH_MULT').value);
@@ -570,12 +1018,13 @@ function runCalc() {
     document.getElementById('results-content').style.display = 'block';
     document.getElementById('stats-row').style.display = 'grid';
     document.getElementById('precision-control').style.display = 'flex';
-    const effDmgHeader = document.querySelector('th:nth-child(3)');
-    effDmgHeader.style.display = COMBO_PCT > 0 ? '' : 'none';
+    const effDmgHeader = document.querySelector('#results-table th:nth-child(3)');
+    if (effDmgHeader) effDmgHeader.style.display = COMBO_PCT > 0 ? '' : 'none';
     renderResults();
   }, 20);
 }
-// --- Persistence & Theme ---
+
+// ─── Persistence & Theme ─────────────────────────────────────────────────────
 const STORAGE_KEY = 'depth_charge_cfg';
 const THEME_KEY = 'depth_charge_theme';
 const FIELDS = ['MAX_TILE','BETTAH_MULT','BOARD_SIZE','BOMBS','LIVES','OPPONENT_HP','DAMAGE','COMBO_PCT'];
@@ -599,17 +1048,13 @@ function setTheme(isDark) {
   localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
 }
 function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  setTheme(!isDark);
+  setTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
 }
 FIELDS.forEach(id => document.getElementById(id).addEventListener('input', saveInputs));
-document.addEventListener('keydown', e => { if (e.key === 'Enter') runCalc(); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('tab-calculator').classList.contains('active')) runCalc(); });
 const savedTheme = localStorage.getItem(THEME_KEY);
-if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-  setTheme(true);
-} else {
-  setTheme(false);
-}
+if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) setTheme(true);
+else setTheme(false);
 loadInputs();
 if (localStorage.getItem(STORAGE_KEY)) runCalc();
 </script>
