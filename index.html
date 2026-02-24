@@ -908,6 +908,8 @@ function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
       }
       scoreDist = newDist;
     }
+    // Apply combo by reducing the effective target for this k rather than
+    // scaling tile values (which causes ceil() to add full integer steps).
     const cm = comboMultiplier(k, comboRate);
     const bucketedDist = {};
     for (const s in scoreDist) {
@@ -921,9 +923,9 @@ function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate) {
     for (let l = 1; l <= lives; l++) {
       for (let s = capT - 1; s >= 0; s--) {
         let prob = (1 - pSurvive) * dp[s][l - 1];
-        for (const ptsStr in bucketedDist) {
+        for (const ptsStr in scoreDist) {
           const newS = Math.min(s + Number(ptsStr), capT);
-          prob += pSurvive * bucketedDist[ptsStr] * dp[newS][l];
+          prob += pSurvive * scoreDist[ptsStr] * dp[newS][l];
         }
         dp[s][l] = prob;
       }
@@ -1011,7 +1013,7 @@ function runCalc() {
   document.getElementById('precision-control').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
   setTimeout(() => {
-    const { results, bestK, bestWin, safeTiles } = evaluateGameExact(target, LIVES, BOARD_SIZE, BOMBS, dist, comboRate);
+    const { results, bestK, bestWin, safeTiles } = evaluateGameExact(target, LIVES, BOARD_SIZE, BOMBS, dist, comboRate, OPPONENT_HP, DAMAGE);
     lastResults = { results, bestK, bestWin, safeTiles };
     currentComboPct = COMBO_PCT;
     document.getElementById('loading').style.display = 'none';
