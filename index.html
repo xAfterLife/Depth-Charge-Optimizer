@@ -1,973 +1,1436 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Depth Charge Optimizer</title>
-<style>
-  :root {
-    --bg-page: #f5f5f5;
-    --bg-panel: #ffffff;
-    --border: #e0e0e0;
-    --text-main: #111111;
-    --text-muted: #777777;
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --accent-light: #dbeafe;
-    --success: #059669;
-    --success-light: #d1fae5;
-    --focus-ring: rgba(37, 99, 235, 0.3);
-    --warn: #d97706;
-    --warn-light: #fef3c7;
-    --gold: #b45309;
-    --gold-light: #fef9c3;
-    --gold-border: #f59e0b;
-  }
-  [data-theme="dark"] {
-    --bg-page: #111111;
-    --bg-panel: #1c1c1c;
-    --border: #2e2e2e;
-    --text-main: #f0f0f0;
-    --text-muted: #888888;
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
-    --accent-light: #1e3a8a;
-    --success: #10b981;
-    --success-light: #064e3b;
-    --focus-ring: rgba(59, 130, 246, 0.4);
-    --warn: #f59e0b;
-    --warn-light: #292109;
-    --gold: #f59e0b;
-    --gold-light: #1c1500;
-    --gold-border: #b45309;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background-color: var(--bg-page);
-    color: var(--text-main);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: background-color 0.2s, color 0.2s;
-  }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1.5rem;
-    background-color: var(--bg-panel);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    gap: 1rem;
-  }
-  .header h1 { font-size: 1.25rem; font-weight: 600; margin: 0; }
-  .header .subtitle { color: var(--text-muted); font-size: 0.875rem; margin-left: 0.75rem; font-weight: 400; }
-  .header-right { display: flex; align-items: center; gap: 0.75rem; }
-  .tab-nav {
-    display: flex;
-    gap: 0;
-    border-bottom: 2px solid var(--border);
-    background: var(--bg-panel);
-    flex-shrink: 0;
-  }
-  .tab-btn {
-    padding: 0.6rem 1.25rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .tab-btn:hover { color: var(--text-main); }
-  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab-panel { display: none; flex: 1; overflow: hidden; }
-  .tab-panel.active { display: flex; flex: 1; overflow: hidden; }
-  .theme-toggle {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-main);
-    padding: 0.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
-  .theme-toggle:hover { background-color: var(--accent-light); }
-  .theme-toggle svg { width: 18px; height: 18px; fill: currentColor; }
-  .app-layout {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    padding: 1.5rem;
-    gap: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  .sidebar {
-    width: 320px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    overflow-y: auto;
-    padding-right: 0.5rem;
-  }
-  .main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    gap: 1rem;
-  }
-  .panel {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.25rem;
-  }
-  .panel-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 1rem;
-  }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .field-group { display: flex; flex-direction: column; gap: 0.375rem; }
-  .field-group.full { grid-column: 1 / -1; }
-  label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
-  input[type="number"] {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    background-color: var(--bg-page);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-main);
-    font-family: inherit;
-    font-size: 1rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    -moz-appearance: textfield;
-  }
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
-  input[type="number"]:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--focus-ring);
-  }
-  input[type="number"].golden-input:focus {
-    border-color: var(--gold-border);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
-  }
-  .field-hint { font-size: 0.7rem; color: var(--text-muted); }
-  .field-hint.gold-hint { color: var(--gold); }
-  .btn {
-    display: block;
-    width: 100%;
-    padding: 0.75rem;
-    background-color: var(--accent);
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-top: 1rem;
-  }
-  .btn:hover { background-color: var(--accent-hover); }
-  .upgrade-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.875rem;
-  }
-  .upgrade-info .val { font-weight: 600; color: var(--text-main); }
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    flex-shrink: 0;
-  }
-  .stat-card {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .stat-card.golden {
-    border-color: var(--gold-border);
-    background-color: var(--gold-light);
-  }
-  .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-  .stat-card.golden .stat-label { color: var(--gold); }
-  .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-  .stat-val.highlight { color: var(--accent); }
-  .stat-val.gold-val { color: var(--gold); }
-  .tile-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-  .chip {
-    background-color: var(--bg-page);
-    border: 1px solid var(--border);
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    display: flex;
-    gap: 0.5rem;
-  }
-  .chip .tier { font-weight: 600; color: var(--text-muted); }
-  .chip .pct { color: var(--text-main); }
-  .combo-chip {
-    background-color: var(--accent-light);
-    border: 1px solid var(--accent);
-    padding: 0.25rem 0.625rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
-  .golden-chip {
-    background-color: var(--gold-light);
-    border: 1px solid var(--gold-border);
-    padding: 0.25rem 0.625rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--gold);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
-  .table-container {
-    flex: 1;
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow-y: auto;
-    position: relative;
-  }
-  table { width: 100%; border-collapse: collapse; text-align: left; }
-  th {
-    position: sticky;
-    top: 0;
-    background-color: var(--bg-panel);
-    padding: 0.75rem 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-    z-index: 10;
-  }
-  td {
-    padding: 0.6rem 1rem;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.875rem;
-  }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background-color: var(--bg-page); }
-  tr.best-row td { background-color: var(--success-light); }
-  tr.best-row td.flips { font-weight: 700; color: var(--success); }
-  tr.best-row td.winrate { font-weight: 700; color: var(--success); }
-  td.eff-dmg { color: var(--text-muted); font-size: 0.8rem; }
-  tr.best-row td.eff-dmg { color: var(--success); }
-  .badge {
-    display: inline-block;
-    background-color: var(--success);
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    padding: 0.1rem 0.3rem;
-    border-radius: 4px;
-    margin-left: 0.5rem;
-    vertical-align: text-top;
-  }
-  .bar-bg { width: 100%; height: 8px; background-color: var(--border); border-radius: 4px; overflow: hidden; }
-  .bar-fill { height: 100%; background-color: var(--accent); border-radius: 4px; }
-  tr.best-row .bar-fill { background-color: var(--success); }
-  .empty-state, .loading-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-  }
-  .precision-control {
-    display: flex;
-    justify-content: flex-end;
-    gap: 4px;
-    margin-bottom: 0.5rem;
-  }
-  .prec-btn {
-    background-color: var(--bg-page);
-    border: 1px solid var(--border);
-    color: var(--text-main);
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .prec-btn.active {
-    background-color: var(--accent);
-    color: #ffffff;
-    border-color: var(--accent);
-  }
-  .prec-btn:hover:not(.active) { background-color: var(--accent-light); }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Depth Charge Optimizer</title>
+  <style>
+    :root {
+      --bg-page: #f5f5f5;
+      --bg-panel: #ffffff;
+      --border: #e0e0e0;
+      --text-main: #111111;
+      --text-muted: #777777;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #dbeafe;
+      --success: #059669;
+      --success-light: #d1fae5;
+      --focus-ring: rgba(37, 99, 235, 0.3);
+      --warn: #d97706;
+      --warn-light: #fef3c7;
+      --gold: #b45309;
+      --gold-light: #fef9c3;
+      --gold-border: #f59e0b;
+    }
 
-  .golden-section {
-    border: 1px solid var(--gold-border);
-    border-radius: 8px;
-    padding: 1.25rem;
-    background: var(--gold-light);
-  }
-  .golden-section .panel-title { color: var(--gold); }
-  .golden-section label { color: var(--gold); }
-  .golden-section input[type="number"] {
-    border-color: var(--gold-border);
-    background-color: var(--bg-page);
-  }
+    [data-theme="dark"] {
+      --bg-page: #111111;
+      --bg-panel: #1c1c1c;
+      --border: #2e2e2e;
+      --text-main: #f0f0f0;
+      --text-muted: #888888;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-light: #1e3a8a;
+      --success: #10b981;
+      --success-light: #064e3b;
+      --focus-ring: rgba(59, 130, 246, 0.4);
+      --warn: #f59e0b;
+      --warn-light: #292109;
+      --gold: #f59e0b;
+      --gold-light: #1c1500;
+      --gold-border: #b45309;
+    }
 
-  /* ── Upgrades Tab ── */
-  .upgrades-layout {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    padding: 1.5rem;
-    gap: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
-    flex-direction: column;
-  }
-  .upg-controls {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-  }
-  .upg-search {
-    padding: 0.45rem 0.75rem;
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-main);
-    font-family: inherit;
-    font-size: 0.875rem;
-    flex: 1;
-    min-width: 180px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .upg-search:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--focus-ring);
-  }
-  .upg-total-bar {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.45rem 0.9rem;
-    font-size: 0.8rem;
-    white-space: nowrap;
-  }
-  .upg-total-bar strong { color: var(--accent); font-family: ui-monospace, monospace; }
-  .upg-table-wrap {
-    flex: 1;
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow-y: auto;
-  }
-  .upg-table { width: 100%; border-collapse: collapse; text-align: left; }
-  .upg-table th {
-    position: sticky;
-    top: 0;
-    background-color: var(--bg-panel);
-    padding: 0.65rem 0.9rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-bottom: 1px solid var(--border);
-    z-index: 10;
-    white-space: nowrap;
-    user-select: none;
-    cursor: pointer;
-  }
-  .upg-table th:hover { color: var(--text-main); }
-  .upg-table th.sorted { color: var(--accent); }
-  .upg-table th .sort-arrow { margin-left: 4px; opacity: 0.5; }
-  .upg-table th.sorted .sort-arrow { opacity: 1; }
-  .upg-table td {
-    padding: 0.55rem 0.9rem;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.8rem;
-    vertical-align: middle;
-  }
-  .upg-table tr:last-child td { border-bottom: none; }
-  .upg-table tr:hover td { background-color: var(--bg-page); }
-  .upg-name { font-weight: 600; color: var(--text-main); white-space: nowrap; }
-  .upg-desc { color: var(--text-muted); font-size: 0.75rem; max-width: 340px; }
-  .upg-desc em { color: var(--warn); font-style: normal; font-weight: 600; }
-  .cost-cell { font-family: ui-monospace, monospace; white-space: nowrap; }
-  .cost-current { color: var(--text-main); font-weight: 600; }
-  .cost-next { color: var(--text-muted); font-size: 0.72rem; }
-  .maxed { color: var(--success); font-weight: 700; }
-  .level-stepper {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-  }
-  .stepper-btn {
-    width: 22px; height: 22px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--bg-page);
-    color: var(--text-main);
-    font-size: 0.85rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
-    flex-shrink: 0;
-  }
-  .stepper-btn:hover { background: var(--accent-light); }
-  .stepper-btn:disabled { opacity: 0.3; cursor: default; }
-  .stepper-input {
-    width: 42px;
-    text-align: center;
-    font-family: ui-monospace, monospace;
-    font-size: 0.8rem;
-    font-weight: 600;
-    background: var(--bg-page);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text-main);
-    padding: 2px 4px;
-    -moz-appearance: textfield;
-  }
-  .stepper-input::-webkit-outer-spin-button,
-  .stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-  .stepper-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--focus-ring);
-  }
-  .stepper-max { font-size: 0.65rem; color: var(--text-muted); width: 36px; display: inline-block; }
-  .progress-mini { display: flex; flex-direction: row; align-items: center; gap: 6px; min-width: 80px; }
-  .progress-mini .bar-bg { height: 5px; flex: 1; min-width: 40px; }
-  .progress-mini .bar-fill { transition: width 0.2s; }
-  .progress-pct { font-size: 0.65rem; color: var(--text-muted); font-family: monospace; white-space: nowrap; flex-shrink: 0; }
-  .reset-btn {
-    padding: 0.4rem 0.9rem;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .reset-btn:hover { border-color: #ef4444; color: #ef4444; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  .derived-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.3rem 0.5rem;
-    background: var(--bg-page);
-    border-radius: 4px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-  .derived-row .mono { font-weight: 700; color: var(--accent); }
-  .derived-row.golden-row .mono { color: var(--gold); }
-  .optimizer-layout {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    padding: 1.5rem;
-    gap: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  .opt-sidebar {
-    width: 260px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    overflow-y: auto;
-  }
-  .opt-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    gap: 1rem;
-  }
-  .opt-table-wrap {
-    flex: 1;
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow-y: auto;
-  }
-  .opt-table { width: 100%; border-collapse: collapse; text-align: left; }
-  .opt-table th {
-    position: sticky;
-    top: 0;
-    background-color: var(--bg-panel);
-    padding: 0.65rem 0.9rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-bottom: 1px solid var(--border);
-    z-index: 10;
-    white-space: nowrap;
-  }
-  .opt-table td {
-    padding: 0.55rem 0.9rem;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.8rem;
-    vertical-align: middle;
-  }
-  .opt-table tr:last-child td { border-bottom: none; }
-  .opt-table tr:hover td { background-color: var(--bg-page); }
-  .opt-table tr.opt-best td { background-color: var(--success-light); }
-  .opt-rank { font-weight: 700; color: var(--text-muted); font-family: monospace; white-space: nowrap; }
-  .opt-table tr.opt-best .opt-rank { color: var(--success); }
-  .opt-upg-name { font-weight: 600; white-space: nowrap; }
-  .opt-table tr.opt-best .opt-upg-name { color: var(--success); }
-  .delta-pos { color: var(--success); font-weight: 700; font-family: monospace; }
-  .delta-zero { color: var(--text-muted); font-family: monospace; }
-  .eff-bar-wrap { min-width: 80px; }
-  .opt-badge {
-    display: inline-block;
-    background-color: var(--success);
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-    margin-left: 0.4rem;
-    vertical-align: middle;
-  }
-  .opt-empty {
-    display: flex; align-items: center; justify-content: center;
-    height: 100%; color: var(--text-muted); font-size: 0.875rem;
-  }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.2s, color 0.2s;
+    }
 
-  /* ── Accept button ── */
-  .accept-btn {
-    padding: 0.25rem 0.65rem;
-    background-color: var(--success);
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: opacity 0.15s, transform 0.1s;
-    letter-spacing: 0.03em;
-  }
-  .accept-btn:hover { opacity: 0.85; transform: scale(1.04); }
-  .accept-btn:active { transform: scale(0.97); }
-  /* flash animation on row after accept */
-  @keyframes rowFlash {
-    0%   { background-color: var(--success-light); }
-    60%  { background-color: var(--success-light); }
-    100% { background-color: transparent; }
-  }
-  .row-accepted { animation: rowFlash 0.6s ease-out forwards; }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
 
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-  @media (max-width: 768px) {
-    body { height: auto; overflow: auto; }
-    .app-layout, .upgrades-layout { flex-direction: column; height: auto; overflow: visible; }
-    .sidebar { width: 100%; overflow: visible; }
-    .table-container { min-height: 400px; overflow: visible; }
-    .upg-table-wrap { min-height: 400px; }
-    .tab-panel.active { display: block; overflow: visible; }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-  }
-</style>
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .header .subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-left: 0.75rem;
+      font-weight: 400;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border);
+      background: var(--bg-panel);
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      padding: 0.6rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-panel {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .tab-panel.active {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .theme-toggle {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--accent-light);
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .app-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      padding: 1.5rem;
+      gap: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      gap: 1rem;
+    }
+
+    .panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .panel-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .field-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background-color: var(--bg-page);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    input[type="number"].golden-input:focus {
+      border-color: var(--gold-border);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+    }
+
+    .field-hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .field-hint.gold-hint {
+      color: var(--gold);
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background-color: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 1rem;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .upgrade-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .upgrade-info .val {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+
+    .stat-card {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .stat-card.golden {
+      border-color: var(--gold-border);
+      background-color: var(--gold-light);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .stat-card.golden .stat-label {
+      color: var(--gold);
+    }
+
+    .stat-val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stat-val.highlight {
+      color: var(--accent);
+    }
+
+    .stat-val.gold-val {
+      color: var(--gold);
+    }
+
+    .tile-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .chip {
+      background-color: var(--bg-page);
+      border: 1px solid var(--border);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chip .tier {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .chip .pct {
+      color: var(--text-main);
+    }
+
+    .combo-chip {
+      background-color: var(--accent-light);
+      border: 1px solid var(--accent);
+      padding: 0.25rem 0.625rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .golden-chip {
+      background-color: var(--gold-light);
+      border: 1px solid var(--gold-border);
+      padding: 0.25rem 0.625rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .table-container {
+      flex: 1;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-panel);
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: var(--bg-page);
+    }
+
+    tr.best-row td {
+      background-color: var(--success-light);
+    }
+
+    tr.best-row td.flips {
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    tr.best-row td.winrate {
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    td.eff-dmg {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    tr.best-row td.eff-dmg {
+      color: var(--success);
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: var(--success);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+      vertical-align: text-top;
+    }
+
+    .bar-bg {
+      width: 100%;
+      height: 8px;
+      background-color: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background-color: var(--accent);
+      border-radius: 4px;
+    }
+
+    tr.best-row .bar-fill {
+      background-color: var(--success);
+    }
+
+    .empty-state,
+    .loading-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .precision-control {
+      display: flex;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    .prec-btn {
+      background-color: var(--bg-page);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .prec-btn.active {
+      background-color: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .prec-btn:hover:not(.active) {
+      background-color: var(--accent-light);
+    }
+
+    .golden-section {
+      border: 1px solid var(--gold-border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      background: var(--gold-light);
+    }
+
+    .golden-section .panel-title {
+      color: var(--gold);
+    }
+
+    .golden-section label {
+      color: var(--gold);
+    }
+
+    .golden-section input[type="number"] {
+      border-color: var(--gold-border);
+      background-color: var(--bg-page);
+    }
+
+    /* ── Upgrades Tab ── */
+    .upgrades-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      padding: 1.5rem;
+      gap: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      flex-direction: column;
+    }
+
+    .upg-controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .upg-search {
+      padding: 0.45rem 0.75rem;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.875rem;
+      flex: 1;
+      min-width: 180px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .upg-search:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    .upg-total-bar {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .upg-total-bar strong {
+      color: var(--accent);
+      font-family: ui-monospace, monospace;
+    }
+
+    .upg-table-wrap {
+      flex: 1;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-y: auto;
+    }
+
+    .upg-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .upg-table th {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-panel);
+      padding: 0.65rem 0.9rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+      white-space: nowrap;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .upg-table th:hover {
+      color: var(--text-main);
+    }
+
+    .upg-table th.sorted {
+      color: var(--accent);
+    }
+
+    .upg-table th .sort-arrow {
+      margin-left: 4px;
+      opacity: 0.5;
+    }
+
+    .upg-table th.sorted .sort-arrow {
+      opacity: 1;
+    }
+
+    .upg-table td {
+      padding: 0.55rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      vertical-align: middle;
+    }
+
+    .upg-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .upg-table tr:hover td {
+      background-color: var(--bg-page);
+    }
+
+    .upg-name {
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .upg-desc {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      max-width: 340px;
+    }
+
+    .upg-desc em {
+      color: var(--warn);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    .cost-cell {
+      font-family: ui-monospace, monospace;
+      white-space: nowrap;
+    }
+
+    .cost-current {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .cost-next {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+    }
+
+    .maxed {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .level-stepper {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .stepper-btn {
+      width: 22px;
+      height: 22px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-page);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .stepper-btn:hover {
+      background: var(--accent-light);
+    }
+
+    .stepper-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .stepper-input {
+      width: 42px;
+      text-align: center;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--bg-page);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-main);
+      padding: 2px 4px;
+      -moz-appearance: textfield;
+    }
+
+    .stepper-input::-webkit-outer-spin-button,
+    .stepper-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    .stepper-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+
+    .stepper-max {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      width: 36px;
+      display: inline-block;
+    }
+
+    .progress-mini {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      min-width: 80px;
+    }
+
+    .progress-mini .bar-bg {
+      height: 5px;
+      flex: 1;
+      min-width: 40px;
+    }
+
+    .progress-mini .bar-fill {
+      transition: width 0.2s;
+    }
+
+    .progress-pct {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-family: monospace;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .reset-btn {
+      padding: 0.4rem 0.9rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .reset-btn:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .derived-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.3rem 0.5rem;
+      background: var(--bg-page);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .derived-row .mono {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .derived-row.golden-row .mono {
+      color: var(--gold);
+    }
+
+    .optimizer-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      padding: 1.5rem;
+      gap: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .opt-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+
+    .opt-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      gap: 1rem;
+    }
+
+    .opt-table-wrap {
+      flex: 1;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-y: auto;
+    }
+
+    .opt-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .opt-table th {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-panel);
+      padding: 0.65rem 0.9rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    .opt-table td {
+      padding: 0.55rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      vertical-align: middle;
+    }
+
+    .opt-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .opt-table tr:hover td {
+      background-color: var(--bg-page);
+    }
+
+    .opt-table tr.opt-best td {
+      background-color: var(--success-light);
+    }
+
+    .opt-rank {
+      font-weight: 700;
+      color: var(--text-muted);
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    .opt-table tr.opt-best .opt-rank {
+      color: var(--success);
+    }
+
+    .opt-upg-name {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .opt-table tr.opt-best .opt-upg-name {
+      color: var(--success);
+    }
+
+    .delta-pos {
+      color: var(--success);
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .delta-zero {
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .eff-bar-wrap {
+      min-width: 80px;
+    }
+
+    .opt-badge {
+      display: inline-block;
+      background-color: var(--success);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      margin-left: 0.4rem;
+      vertical-align: middle;
+    }
+
+    .opt-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* ── Accept button ── */
+    .accept-btn {
+      padding: 0.25rem 0.65rem;
+      background-color: var(--success);
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.03em;
+    }
+
+    .accept-btn:hover {
+      opacity: 0.85;
+      transform: scale(1.04);
+    }
+
+    .accept-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* flash animation on row after accept */
+    @keyframes rowFlash {
+      0% {
+        background-color: var(--success-light);
+      }
+
+      60% {
+        background-color: var(--success-light);
+      }
+
+      100% {
+        background-color: transparent;
+      }
+    }
+
+    .row-accepted {
+      animation: rowFlash 0.6s ease-out forwards;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        overflow: auto;
+      }
+
+      .app-layout,
+      .upgrades-layout {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+      }
+
+      .sidebar {
+        width: 100%;
+        overflow: visible;
+      }
+
+      .table-container {
+        min-height: 400px;
+        overflow: visible;
+      }
+
+      .upg-table-wrap {
+        min-height: 400px;
+      }
+
+      .tab-panel.active {
+        display: block;
+        overflow: visible;
+      }
+
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
 </head>
+
 <body>
-<header class="header">
-  <div>
-    <h1>Depth Charge <span class="subtitle">Win Rate Calculator</span></h1>
-  </div>
-  <div class="header-right">
-    <button class="theme-toggle" id="theme-btn" title="Toggle Light/Dark Mode" onclick="toggleTheme()">
-      <svg id="theme-icon" viewBox="0 0 24 24">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-      </svg>
-    </button>
-  </div>
-</header>
-
-<div class="tab-nav">
-  <button class="tab-btn active" onclick="switchTab('calculator', this)">Calculator</button>
-  <button class="tab-btn" onclick="switchTab('upgrades', this)">Upgrades</button>
-  <button class="tab-btn" onclick="switchTab('optimizer', this)">Optimizer</button>
-</div>
-
-<!-- ═══ CALCULATOR TAB ═══ -->
-<div class="tab-panel active" id="tab-calculator">
-  <div class="app-layout">
-    <aside class="sidebar">
-      <div class="panel">
-        <div class="panel-title">Configuration</div>
-        <div class="form-grid">
-          <div class="field-group">
-            <label>Board Size</label>
-            <input type="number" id="BOARD_SIZE" value="15" min="5">
-          </div>
-          <div class="field-group">
-            <label>Bombs</label>
-            <input type="number" id="BOMBS" value="3" min="0">
-          </div>
-          <div class="field-group full">
-            <label>Opponent HP</label>
-            <input type="number" id="OPPONENT_HP" value="1803" min="1">
-          </div>
-          <div class="field-group full">
-            <label>Research Dmg Mult</label>
-            <input type="number" id="RESEARCH_MULT" value="1.00" min="1" step="0.01">
-            <span class="field-hint">e.g. 1.17</span>
-          </div>
-        </div>
-        <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.4rem;">
-          <div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem">From Upgrades</div>
-          <div class="derived-row"><span>Base Damage / Point</span><span class="mono" id="derived-damage">—</span></div>
-          <div class="derived-row"><span>Max Tile</span><span class="mono" id="derived-max-tile">—</span></div>
-          <div class="derived-row"><span>Bettah Mult</span><span class="mono" id="derived-bettah">—</span></div>
-          <div class="derived-row"><span>Lives</span><span class="mono" id="derived-lives">—</span></div>
-          <div class="derived-row"><span>Combo %</span><span class="mono" id="derived-combo">—</span></div>
-          <div class="derived-row golden-row"><span>Golden Tiles</span><span class="mono" id="derived-golden">—</span></div>
-        </div>
-        <button class="btn" onclick="runCalc()">Calculate Strategy</button>
-      </div>
-
-      <div class="upgrade-info" id="upgrade-info" style="display:none">
-        <div><span class="field-hint">Upgrade Roll</span> <br> <span class="val mono" id="upgrade-pct">—</span></div>
-        <div style="text-align:right"><span class="field-hint">Target Score</span> <br> <span class="val mono" id="target-pts">—</span></div>
-      </div>
-    </aside>
-    <main class="main-content">
-      <div class="stats-row" id="stats-row" style="display:none">
-        <div class="stat-card">
-          <span class="stat-label">Optimal Flips</span>
-          <span class="stat-val highlight mono" id="stat-best-k">—</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Peak Win Rate</span>
-          <span class="stat-val highlight mono" id="stat-best-win">—</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Safe Tiles</span>
-          <span class="stat-val mono" id="stat-safe">—</span>
-        </div>
-        <div class="stat-card golden" id="stat-golden-card" style="display:none">
-          <span class="stat-label">Golden Bonus</span>
-          <span class="stat-val gold-val mono" id="stat-golden-bonus">—</span>
-        </div>
-      </div>
-
-      <div id="precision-control" class="precision-control" style="display:none">
-        <button id="prec-2dec" class="prec-btn active" onclick="setPrecision(2)">2 decimals</button>
-        <button id="prec-full" class="prec-btn" onclick="setPrecision(0)">full precision</button>
-      </div>
-
-      <div class="table-container">
-        <div id="loading" class="loading-state" style="display:none">Computing Exact Probabilities...</div>
-        <div id="results-content" style="display:none">
-          <div style="padding: 1rem 1rem 0 1rem;">
-            <div class="tile-chips" id="tile-dist"></div>
-          </div>
-          <table id="results-table">
-            <thead>
-              <tr>
-                <th style="width: 12%">Flips</th>
-                <th style="width: 20%">Win Rate</th>
-                <th id="th-combo" style="width: 12%; display:none">Combo ×</th>
-                <th>Probability Visual</th>
-              </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
-        <div id="empty-state" class="empty-state">
-          Configure parameters and press Calculate
-        </div>
-      </div>
-    </main>
-  </div>
-</div>
-
-<!-- ═══ UPGRADES TAB ═══ -->
-<div class="tab-panel" id="tab-upgrades">
-  <div class="upgrades-layout">
-    <div class="upg-controls">
-      <input type="text" class="upg-search" id="upg-search" placeholder="Search upgrades…" oninput="renderUpgrades()">
-      <div class="upg-total-bar">Total spent: <strong id="upg-total-cost">0</strong></div>
-      <button class="reset-btn" onclick="resetUpgrades()">Reset All</button>
+  <header class="header">
+    <div>
+      <h1>Depth Charge <span class="subtitle">Win Rate Calculator</span></h1>
     </div>
-    <div class="upg-table-wrap">
-      <table class="upg-table">
-        <thead>
-          <tr>
-            <th onclick="sortUpgrades('name')" id="th-name">Upgrade <span class="sort-arrow">↕</span></th>
-            <th onclick="sortUpgrades('level')" id="th-level">Level <span class="sort-arrow">↕</span></th>
-            <th>Progress</th>
-            <th onclick="sortUpgrades('cost')" id="th-cost">Cost <span class="sort-arrow">↕</span></th>
-            <th onclick="sortUpgrades('total')" id="th-total">Spent Total <span class="sort-arrow">↕</span></th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody id="upg-tbody"></tbody>
-      </table>
+    <div class="header-right">
+      <button class="theme-toggle" id="theme-btn" title="Toggle Light/Dark Mode" onclick="toggleTheme()">
+        <svg id="theme-icon" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('calculator', this)">Calculator</button>
+    <button class="tab-btn" onclick="switchTab('upgrades', this)">Upgrades</button>
+    <button class="tab-btn" onclick="switchTab('optimizer', this)">Optimizer</button>
+  </div>
+
+  <!-- ═══ CALCULATOR TAB ═══ -->
+  <div class="tab-panel active" id="tab-calculator">
+    <div class="app-layout">
+      <aside class="sidebar">
+        <div class="panel">
+          <div class="panel-title">Configuration</div>
+          <div class="form-grid">
+            <div class="field-group">
+              <label>Current Stage</label>
+              <input type="number" id="STAGE" value="5" min="1" max="32" oninput="onStageChange()">
+            </div>
+            <div class="field-group">
+              <label>Research Dmg Mult</label>
+              <input type="number" id="RESEARCH_MULT" value="1.00" min="1" step="0.01">
+              <span class="field-hint">e.g. 1.17</span>
+            </div>
+            <div class="field-group full">
+              <div class="derived-row" style="margin-top:0.25rem">
+                <span>Opponent HP</span><span class="mono" id="derived-opp-hp">—</span>
+              </div>
+              <div class="derived-row">
+                <span>Bombs</span><span class="mono" id="derived-bombs">—</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.4rem;">
+            <div
+              style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem">
+              From Upgrades</div>
+            <div class="derived-row"><span>Base Damage / Point</span><span class="mono" id="derived-damage">—</span>
+            </div>
+            <div class="derived-row"><span>Max Tile</span><span class="mono" id="derived-max-tile">—</span></div>
+            <div class="derived-row"><span>Bettah Mult</span><span class="mono" id="derived-bettah">—</span></div>
+            <div class="derived-row"><span>Lives</span><span class="mono" id="derived-lives">—</span></div>
+            <div class="derived-row"><span>Combo %</span><span class="mono" id="derived-combo">—</span></div>
+            <div class="derived-row golden-row"><span>Golden Tiles</span><span class="mono" id="derived-golden">—</span>
+            </div>
+            <div class="derived-row"><span>Board Size</span><span class="mono" id="derived-grid">—</span></div>
+          </div>
+          <button class="btn" onclick="runCalc()">Calculate Strategy</button>
+        </div>
+
+        <div class="upgrade-info" id="upgrade-info" style="display:none">
+          <div><span class="field-hint">Upgrade Roll</span> <br> <span class="val mono" id="upgrade-pct">—</span></div>
+          <div style="text-align:right"><span class="field-hint">Target Score</span> <br> <span class="val mono"
+              id="target-pts">—</span></div>
+        </div>
+      </aside>
+      <main class="main-content">
+        <div class="stats-row" id="stats-row" style="display:none">
+          <div class="stat-card">
+            <span class="stat-label">Optimal Flips</span>
+            <span class="stat-val highlight mono" id="stat-best-k">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Peak Win Rate</span>
+            <span class="stat-val highlight mono" id="stat-best-win">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Safe Tiles</span>
+            <span class="stat-val mono" id="stat-safe">—</span>
+          </div>
+          <div class="stat-card golden" id="stat-golden-card" style="display:none">
+            <span class="stat-label">Golden Bonus</span>
+            <span class="stat-val gold-val mono" id="stat-golden-bonus">—</span>
+          </div>
+        </div>
+
+        <div id="precision-control" class="precision-control" style="display:none">
+          <button id="prec-2dec" class="prec-btn active" onclick="setPrecision(2)">2 decimals</button>
+          <button id="prec-full" class="prec-btn" onclick="setPrecision(0)">full precision</button>
+        </div>
+
+        <div class="table-container">
+          <div id="loading" class="loading-state" style="display:none">Computing Exact Probabilities...</div>
+          <div id="results-content" style="display:none">
+            <div style="padding: 1rem 1rem 0 1rem;">
+              <div class="tile-chips" id="tile-dist"></div>
+            </div>
+            <table id="results-table">
+              <thead>
+                <tr>
+                  <th style="width: 12%">Flips</th>
+                  <th style="width: 20%">Win Rate</th>
+                  <th id="th-combo" style="width: 12%; display:none">Combo ×</th>
+                  <th>Probability Visual</th>
+                </tr>
+              </thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+          <div id="empty-state" class="empty-state">
+            Configure parameters and press Calculate
+          </div>
+        </div>
+      </main>
     </div>
   </div>
-</div>
 
-<!-- ═══ OPTIMIZER TAB ═══ -->
-<div class="tab-panel" id="tab-optimizer">
-  <div class="optimizer-layout">
-    <aside class="opt-sidebar">
-      <div class="panel">
-        <div class="panel-title">Boss Config</div>
-        <div class="form-grid">
-          <div class="field-group">
-            <label>Opponent HP</label>
-            <input type="number" id="OPT_HP" value="1803" min="1">
-          </div>
-          <div class="field-group">
-            <label>Bombs</label>
-            <input type="number" id="OPT_BOMBS" value="3" min="0">
-          </div>
-          <div class="field-group">
-            <label>Board Size</label>
-            <input type="number" id="OPT_BOARD" value="15" min="5">
-          </div>
-          <div class="field-group">
-            <label>Research Mult</label>
-            <input type="number" id="OPT_RESEARCH" value="1.00" min="1" step="0.01">
-          </div>
-        </div>
-        <button class="btn" onclick="runOptimizer()">Run Optimizer</button>
+  <!-- ═══ UPGRADES TAB ═══ -->
+  <div class="tab-panel" id="tab-upgrades">
+    <div class="upgrades-layout">
+      <div class="upg-controls">
+        <input type="text" class="upg-search" id="upg-search" placeholder="Search upgrades…" oninput="renderUpgrades()">
+        <div class="upg-total-bar">Total spent: <strong id="upg-total-cost">0</strong></div>
+        <button class="reset-btn" onclick="resetUpgrades()">Reset All</button>
       </div>
-      <div class="panel" id="opt-derived-panel" style="display:none">
-        <div class="panel-title">Current State</div>
-        <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.8rem;">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Base Damage</span><span class="mono" id="opt-d-dmg" style="font-weight:700">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Lives</span><span class="mono" id="opt-d-lives" style="font-weight:700">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Max Tile</span><span class="mono" id="opt-d-tile" style="font-weight:700">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Bettah Mult</span><span class="mono" id="opt-d-bettah" style="font-weight:700">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Combo %</span><span class="mono" id="opt-d-combo" style="font-weight:700">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--gold)">Golden Tiles</span><span class="mono" id="opt-d-golden" style="font-weight:700;color:var(--gold)">—</span></div>
-          <hr style="border:none;border-top:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Current Win %</span><span class="mono" id="opt-d-win" style="font-weight:700;color:var(--accent)">—</span></div>
-        </div>
+      <div class="upg-table-wrap">
+        <table class="upg-table">
+          <thead>
+            <tr>
+              <th onclick="sortUpgrades('name')" id="th-name">Upgrade <span class="sort-arrow">↕</span></th>
+              <th onclick="sortUpgrades('level')" id="th-level">Level <span class="sort-arrow">↕</span></th>
+              <th>Progress</th>
+              <th onclick="sortUpgrades('cost')" id="th-cost">Cost <span class="sort-arrow">↕</span></th>
+              <th onclick="sortUpgrades('total')" id="th-total">Spent Total <span class="sort-arrow">↕</span></th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="upg-tbody"></tbody>
+        </table>
       </div>
-    </aside>
-    <main class="opt-main">
-      <div id="opt-empty" class="opt-empty">Configure boss HP &amp; bombs, then Run Optimizer</div>
-      <div id="opt-results" style="display:none; flex:1; flex-direction:column; gap:1rem;">
-        <div class="opt-table-wrap">
-          <table class="opt-table">
-            <thead>
-              <tr>
-                <th style="width:36px">#</th>
-                <th>Upgrade</th>
-                <th>Level</th>
-                <th>Cost</th>
-                <th>Win Δ</th>
-                <th>Efficiency (Δ%/cost)</th>
-                <th style="width:140px">Gain Bar</th>
-                <th style="width:80px">Accept</th>
-              </tr>
-            </thead>
-            <tbody id="opt-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+    </div>
   </div>
-</div>
+
+  <!-- ═══ OPTIMIZER TAB ═══ -->
+  <div class="tab-panel" id="tab-optimizer">
+    <div class="optimizer-layout">
+      <aside class="opt-sidebar">
+        <div class="panel">
+          <div class="panel-title">Boss Config</div>
+          <div class="form-grid">
+            <div class="field-group">
+              <label>Stage</label>
+              <input type="number" id="OPT_STAGE" value="5" min="1" oninput="onOptStageChange()">
+            </div>
+            <div class="field-group">
+              <label>Research Mult</label>
+              <input type="number" id="OPT_RESEARCH" value="1.00" min="1" step="0.01">
+            </div>
+            <div class="field-group full" style="grid-column:1/-1">
+              <div class="derived-row">
+                <span>Opponent HP</span><span class="mono" id="opt-derived-opp-hp">—</span>
+              </div>
+              <div class="derived-row">
+                <span>Bombs</span><span class="mono" id="opt-derived-bombs">—</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn" onclick="runOptimizer()">Run Optimizer</button>
+        </div>
+        <div class="panel" id="opt-derived-panel" style="display:none">
+          <div class="panel-title">Current State</div>
+          <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.8rem;">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Base
+                Damage</span><span class="mono" id="opt-d-dmg" style="font-weight:700">—</span></div>
+            <div style="display:flex;justify-content:space-between"><span
+                style="color:var(--text-muted)">Lives</span><span class="mono" id="opt-d-lives"
+                style="font-weight:700">—</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Max
+                Tile</span><span class="mono" id="opt-d-tile" style="font-weight:700">—</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Bettah
+                Mult</span><span class="mono" id="opt-d-bettah" style="font-weight:700">—</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Combo
+                %</span><span class="mono" id="opt-d-combo" style="font-weight:700">—</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--gold)">Golden
+                Tiles</span><span class="mono" id="opt-d-golden" style="font-weight:700;color:var(--gold)">—</span>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Current Win
+                %</span><span class="mono" id="opt-d-win" style="font-weight:700;color:var(--accent)">—</span></div>
+          </div>
+        </div>
+      </aside>
+      <main class="opt-main">
+        <div id="opt-empty" class="opt-empty">Configure boss HP &amp; bombs, then Run Optimizer</div>
+        <div id="opt-results" style="display:none; flex:1; flex-direction:column; gap:1rem;">
+          <div class="opt-table-wrap">
+            <table class="opt-table">
+              <thead>
+                <tr>
+                  <th style="width:36px">#</th>
+                  <th>Upgrade</th>
+                  <th>Level</th>
+                  <th>Cost</th>
+                  <th>Win Δ</th>
+                  <th>Efficiency (Δ%/cost)</th>
+                  <th style="width:140px">Gain Bar</th>
+                  <th style="width:80px">Accept</th>
+                </tr>
+              </thead>
+              <tbody id="opt-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
 
 
-<script>
-// ─── Upgrade Data ───────────────────────────────────────────────────────────
-function getRawUpgrades() {
-  return [
-    'Base_Damage_I 9999 1.10 1 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
-    'Numbahs 17 6 1 0 Increase_the_max_possible_Tile_Number_you_can_find_to_$!_These_are_a_MULTI_for_damage!'.split(' '),
-    'Grid_Expansion 16 7.5 1 0 $'.split(' '),
-    'Bettah_Numbahs 9999 1.15 10 0 Boosts_your_odds_of_getting_bigger_Tile_Numbers_by_}x'.split(' '),
-    'Mega_Damage_I 9999 1.12 5 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
-    'Miney_Farmey_I 9999 1.10 10 0 Boosts_the_amount_of_Mine_Currency_you_generate_per_hour_by_+{%'.split(' '),
-    'Extra_Lives 7 250 1 0 Start_each_game_with_+1_extra_life!'.split(' '),
-    'Base_Damage_II 9999 1.10 3 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
-    'Golden_Tiles 16 8 1 0 Click_on_up_to_{_Golden_Tiles_per_game,_which_are_guaranteed_to_be_safe_from_Depth_Charges!'.split(' '),
-    'Big_Hit_Combos 9999 1.30 1 0 Increases_damage_by_+{%_for_every_tile_revealed,_resetting_at_the_start_of_each_turn.'.split(' '),
-    'Boom_Blocker 2 1000000000.0 1 0 Start_each_game_of_Depth_Charge_with_+{_Blocks._Depth_Charges_HATE_this_feature!'.split(' '),
-    'Final_Round_Fury 9999 1.30 2 0 Your_damage_is_}x_higher_when_down_to_your_last_life!'.split(' '),
-    'Multiplier_Madness 10 35 1 0 You_can_now_find_Multiplier_Tiles,_up_to_$!_These_multiply_damage_for_the_current_turn.'.split(' '),
-    "Moar_Moar_Multi's 9999 1.15 6 0 Boosts_your_odds_of_getting_bigger_Multiplier_Tiles_by_}x".split(' '),
-    'Triple_Crown_Hunter 250 1.16 1 0 Tiles_can_now_have_a_Blue_Crown_background,_reveal_3_to_multiply_current_damage_by_$'.split(' '),
-    'Crown_Craze 100 1.40 1 0 Boosts_your_odds_of_revealing_Blue_Crown_backgrounds_by_}x'.split(' '),
-    'Legal_Cheating_Button 20 6 1 0 Reveals_a_Depth_Charges,_has_{_uses,_but_has_a_25%_chance_to_break_until_next_turn!'.split(' '),
-    'Awesome_Additives 10 35 1 0 You_can_now_find_Additive_Tiles,_up_to_$!_These_boost_your_damage_for_the_ENTIRE_game!'.split(' '),
-    'Always_Adding 9999 1.15 5 0 Boosts_your_odds_of_revealing_bigger_Additive_Tiles_by_}x'.split(' '),
-    'Clutch_Overtime_Block 1 100000 1 0 When_down_to_your_last_life,_get_+{_Block!_Depth_Charges_STILL_HATE_this_feature!!!'.split(' '),
-    'Classic_Flags 8 500 1 0 You_can_place_down_{_Flags,_which_show_the_amount_of_surrounding_Depth_Charges!'.split(' '),
-    'Mega_Damage_II 9999 1.10 20 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
-    'Miney_Farmey_II 9999 1.15 15 0 Boosts_the_amount_of_Mine_Currency_you_generate_per_hour_by_+{%'.split(' '),
-    'Jackpot_Time 9999 1.14 1 0 Boosts_your_odds_of_finding_Jackpot_tiles!_You\'ve_currently_got_a_1_in_$_chance!'.split(' '),
-    'Record_Breaking_Jackpots 6 1000 1 0 Jackpot_Tiles_now_reveal_$_tiles_when_found!'.split(' '),
-    'Base_Damage_III 9999 1.10 12 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
-    "El'_Cheapo_Upgrado 9999 1.15 1 0 All_upgrades_are_$%_cheaper,_now_and_forever!".split(' '),
-    'Mega_Damage_III 9999 1.12 50 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
-    'Miney_Damagey_Synergy 9999 1.25 2 0 $'.split(' '),
-    "Rift_Guy's_Upgrade 0 9999999 1 0 Uh,_yea._This_is_MY_upgrade,_NOT_yours._I_maxed_it_out_because_I'm_me,_duh.".split(' '),
-  ];
-}
+  <script>
+    // ─── Upgrade Data ───────────────────────────────────────────────────────────
+    function getRawUpgrades() {
+      return [
+        'Base_Damage_I 9999 1.10 1 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
+        'Numbahs 17 6 1 0 Increase_the_max_possible_Tile_Number_you_can_find_to_$!_These_are_a_MULTI_for_damage!'.split(' '),
+        'Grid_Expansion 16 7.5 1 0 $'.split(' '),
+        'Bettah_Numbahs 9999 1.15 10 0 Boosts_your_odds_of_getting_bigger_Tile_Numbers_by_}x'.split(' '),
+        'Mega_Damage_I 9999 1.12 5 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
+        'Miney_Farmey_I 9999 1.10 10 0 Boosts_the_amount_of_Mine_Currency_you_generate_per_hour_by_+{%'.split(' '),
+        'Extra_Lives 7 250 1 0 Start_each_game_with_+1_extra_life!'.split(' '),
+        'Base_Damage_II 9999 1.10 3 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
+        'Golden_Tiles 16 8 1 0 Click_on_up_to_{_Golden_Tiles_per_game,_which_are_guaranteed_to_be_safe_from_Depth_Charges!'.split(' '),
+        'Big_Hit_Combos 9999 1.30 1 0 Increases_damage_by_+{%_for_every_tile_revealed,_resetting_at_the_start_of_each_turn.'.split(' '),
+        'Boom_Blocker 2 1000000000.0 1 0 Start_each_game_of_Depth_Charge_with_+{_Blocks._Depth_Charges_HATE_this_feature!'.split(' '),
+        'Final_Round_Fury 9999 1.30 2 0 Your_damage_is_}x_higher_when_down_to_your_last_life!'.split(' '),
+        'Multiplier_Madness 10 35 1 0 You_can_now_find_Multiplier_Tiles,_up_to_$!_These_multiply_damage_for_the_current_turn.'.split(' '),
+        "Moar_Moar_Multi's 9999 1.15 6 0 Boosts_your_odds_of_getting_bigger_Multiplier_Tiles_by_}x".split(' '),
+        'Triple_Crown_Hunter 250 1.16 1 0 Tiles_can_now_have_a_Blue_Crown_background,_reveal_3_to_multiply_current_damage_by_$'.split(' '),
+        'Crown_Craze 100 1.40 1 0 Boosts_your_odds_of_revealing_Blue_Crown_backgrounds_by_}x'.split(' '),
+        'Legal_Cheating_Button 20 6 1 0 Reveals_a_Depth_Charges,_has_{_uses,_but_has_a_25%_chance_to_break_until_next_turn!'.split(' '),
+        'Awesome_Additives 10 35 1 0 You_can_now_find_Additive_Tiles,_up_to_$!_These_boost_your_damage_for_the_ENTIRE_game!'.split(' '),
+        'Always_Adding 9999 1.15 5 0 Boosts_your_odds_of_revealing_bigger_Additive_Tiles_by_}x'.split(' '),
+        'Clutch_Overtime_Block 1 100000 1 0 When_down_to_your_last_life,_get_+{_Block!_Depth_Charges_STILL_HATE_this_feature!!!'.split(' '),
+        'Classic_Flags 8 500 1 0 You_can_place_down_{_Flags,_which_show_the_amount_of_surrounding_Depth_Charges!'.split(' '),
+        'Mega_Damage_II 9999 1.10 20 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
+        'Miney_Farmey_II 9999 1.15 15 0 Boosts_the_amount_of_Mine_Currency_you_generate_per_hour_by_+{%'.split(' '),
+        'Jackpot_Time 9999 1.14 1 0 Boosts_your_odds_of_finding_Jackpot_tiles!_You\'ve_currently_got_a_1_in_$_chance!'.split(' '),
+        'Record_Breaking_Jackpots 6 1000 1 0 Jackpot_Tiles_now_reveal_$_tiles_when_found!'.split(' '),
+        'Base_Damage_III 9999 1.10 12 0 Boosts_your_base_damage_in_the_classic_game_of_Depth_Charge_by_+{'.split(' '),
+        "El'_Cheapo_Upgrado 9999 1.15 1 0 All_upgrades_are_$%_cheaper,_now_and_forever!".split(' '),
+        'Mega_Damage_III 9999 1.12 50 0 Permanently_increases_all_damage_you_deal_in_the_classic_game_of_Depth_Charge_by_+{%'.split(' '),
+        'Miney_Damagey_Synergy 9999 1.25 2 0 $'.split(' '),
+        "Rift_Guy's_Upgrade 0 9999999 1 0 Uh,_yea._This_is_MY_upgrade,_NOT_yours._I_maxed_it_out_because_I'm_me,_duh.".split(' '),
+      ];
+    }
 
-function baseCost(id) {
-  return (5 + id + Math.pow(Math.max(0, id - 2), 1.3)) * Math.pow(2, Math.max(0, id - 4));
-}
-function upgradeCost(id, costScale, currentLevel) {
-  return baseCost(id) * Math.pow(costScale, currentLevel);
-}
-function totalSpent(id, costScale, currentLevel) {
-  if (currentLevel === 0) return 0;
-  const b = baseCost(id);
-  const s = costScale;
-  if (Math.abs(s - 1) < 1e-9) return b * currentLevel;
-  return b * (Math.pow(s, currentLevel) - 1) / (s - 1);
-}
-function parseUpgrades() {
-  const raw = getRawUpgrades();
-  return raw.map((cols, id) => ({
-    id,
-    name: cols[0].replace(/_/g, ' '),
-    maxLevel: parseInt(cols[1]),
-    costScale: parseFloat(cols[2]),
-    valueIncrement: parseFloat(cols[3]),
-    level: parseInt(cols[4]),
-    descRaw: cols[5] ? cols[5].replace(/_/g, ' ') : '',
-  }));
-}
+    function baseCost(id) {
+      return (5 + id + Math.pow(Math.max(0, id - 2), 1.3)) * Math.pow(2, Math.max(0, id - 4));
+    }
+    function upgradeCost(id, costScale, currentLevel) {
+      return baseCost(id) * Math.pow(costScale, currentLevel);
+    }
+    function totalSpent(id, costScale, currentLevel) {
+      if (currentLevel === 0) return 0;
+      const b = baseCost(id);
+      const s = costScale;
+      if (Math.abs(s - 1) < 1e-9) return b * currentLevel;
+      return b * (Math.pow(s, currentLevel) - 1) / (s - 1);
+    }
+    function parseUpgrades() {
+      const raw = getRawUpgrades();
+      return raw.map((cols, id) => ({
+        id,
+        name: cols[0].replace(/_/g, ' '),
+        maxLevel: parseInt(cols[1]),
+        costScale: parseFloat(cols[2]),
+        valueIncrement: parseFloat(cols[3]),
+        level: parseInt(cols[4]),
+        descRaw: cols[5] ? cols[5].replace(/_/g, ' ') : '',
+      }));
+    }
 
-const UPG_LEVELS_KEY = 'dc_upg_levels';
-function loadLevels(upgrades) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(UPG_LEVELS_KEY));
-    if (!saved) return;
-    upgrades.forEach(u => {
-      if (saved[u.id] != null) u.level = Math.min(parseInt(saved[u.id]), u.maxLevel);
-    });
-  } catch(_) {}
-}
-function saveLevels(upgrades) {
-  const obj = {};
-  upgrades.forEach(u => { obj[u.id] = u.level; });
-  localStorage.setItem(UPG_LEVELS_KEY, JSON.stringify(obj));
-}
+    const UPG_LEVELS_KEY = 'dc_upg_levels';
+    function loadLevels(upgrades) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(UPG_LEVELS_KEY));
+        if (!saved) return;
+        upgrades.forEach(u => {
+          if (saved[u.id] != null) u.level = Math.min(parseInt(saved[u.id]), u.maxLevel);
+        });
+      } catch (_) { }
+    }
+    function saveLevels(upgrades) {
+      const obj = {};
+      upgrades.forEach(u => { obj[u.id] = u.level; });
+      localStorage.setItem(UPG_LEVELS_KEY, JSON.stringify(obj));
+    }
 
-let UPGRADES = parseUpgrades();
-loadLevels(UPGRADES);
+    let UPGRADES = parseUpgrades();
+    loadLevels(UPGRADES);
 
-let upgSortCol = null;
-let upgSortDir = 1;
+    let upgSortCol = null;
+    let upgSortDir = 1;
 
-function formatNum(n) {
-  if (!isFinite(n)) return '∞';
-  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
-  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
-  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
-  return Math.round(n).toLocaleString();
-}
-function buildDesc(u) {
-  const val = (u.valueIncrement * u.level).toFixed(Number.isInteger(u.valueIncrement) ? 0 : 2);
-  let d = u.descRaw;
-  d = d.replace(/\{/g, `<em>${val}</em>`);
-  d = d.replace(/\}/g, `<em>${val}</em>`);
-  d = d.replace(/\$/g, '<em>[?]</em>');
-  return d;
-}
+    function formatNum(n) {
+      if (!isFinite(n)) return '∞';
+      if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+      if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+      if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+      return Math.round(n).toLocaleString();
+    }
+    function buildDesc(u) {
+      const val = (u.valueIncrement * u.level).toFixed(Number.isInteger(u.valueIncrement) ? 0 : 2);
+      let d = u.descRaw;
 
-function renderUpgrades() {
-  const query = (document.getElementById('upg-search').value || '').toLowerCase();
-  let list = UPGRADES.filter(u => !query || u.name.toLowerCase().includes(query) || u.descRaw.toLowerCase().replace(/_/g,' ').includes(query));
-  if (upgSortCol) {
-    list = list.slice().sort((a, b) => {
-      let va, vb;
-      if (upgSortCol === 'name') { va = a.name; vb = b.name; return upgSortDir * va.localeCompare(vb); }
-      if (upgSortCol === 'level') { va = a.level; vb = b.level; }
-      if (upgSortCol === 'cost') {
-        va = a.level >= a.maxLevel ? Infinity : upgradeCost(a.id, a.costScale, a.level);
-        vb = b.level >= b.maxLevel ? Infinity : upgradeCost(b.id, b.costScale, b.level);
+      if (u.name === 'Grid Expansion') {
+        const { x, y, size } = gridForLevel(u.level);
+        d = `The Board is ${x} by ${y} big — that's ${size} Tiles in total.`;
+        return d;
       }
-      if (upgSortCol === 'total') {
-        va = totalSpent(a.id, a.costScale, a.level);
-        vb = totalSpent(b.id, b.costScale, b.level);
+
+      d = d.replace(/\{/g, `<em>${val}</em>`);
+      d = d.replace(/\}/g, `<em>${val}</em>`);
+      d = d.replace(/\$/g, '<em>[?]</em>');
+      return d;
+    }
+
+    function renderUpgrades() {
+      const query = (document.getElementById('upg-search').value || '').toLowerCase();
+      let list = UPGRADES.filter(u => !query || u.name.toLowerCase().includes(query) || u.descRaw.toLowerCase().replace(/_/g, ' ').includes(query));
+      if (upgSortCol) {
+        list = list.slice().sort((a, b) => {
+          let va, vb;
+          if (upgSortCol === 'name') { va = a.name; vb = b.name; return upgSortDir * va.localeCompare(vb); }
+          if (upgSortCol === 'level') { va = a.level; vb = b.level; }
+          if (upgSortCol === 'cost') {
+            va = a.level >= a.maxLevel ? Infinity : upgradeCost(a.id, a.costScale, a.level);
+            vb = b.level >= b.maxLevel ? Infinity : upgradeCost(b.id, b.costScale, b.level);
+          }
+          if (upgSortCol === 'total') {
+            va = totalSpent(a.id, a.costScale, a.level);
+            vb = totalSpent(b.id, b.costScale, b.level);
+          }
+          return upgSortDir * (va - vb);
+        });
       }
-      return upgSortDir * (va - vb);
-    });
-  }
-  let totalCost = 0;
-  UPGRADES.forEach(u => { totalCost += totalSpent(u.id, u.costScale, u.level); });
-  document.getElementById('upg-total-cost').textContent = formatNum(totalCost);
-  const tbody = document.getElementById('upg-tbody');
-  let html = '';
-  list.forEach(u => {
-    const isMaxed = u.level >= u.maxLevel;
-    const canDec = u.level > 0;
-    const nextCost = isMaxed ? null : upgradeCost(u.id, u.costScale, u.level);
-    const spent = totalSpent(u.id, u.costScale, u.level);
-    const pct = u.maxLevel > 0 ? (u.level / u.maxLevel * 100) : 0;
-    const desc = buildDesc(u);
-    const costCell = isMaxed
-      ? `<span class="maxed">MAXED</span>`
-      : `<div class="cost-current">${formatNum(nextCost)}</div>`;
-    html += `<tr>
+      let totalCost = 0;
+      UPGRADES.forEach(u => { totalCost += totalSpent(u.id, u.costScale, u.level); });
+      document.getElementById('upg-total-cost').textContent = formatNum(totalCost);
+      const tbody = document.getElementById('upg-tbody');
+      let html = '';
+      list.forEach(u => {
+        const isMaxed = u.level >= u.maxLevel;
+        const canDec = u.level > 0;
+        const nextCost = isMaxed ? null : upgradeCost(u.id, u.costScale, u.level);
+        const spent = totalSpent(u.id, u.costScale, u.level);
+        const pct = u.maxLevel > 0 ? (u.level / u.maxLevel * 100) : 0;
+        const desc = buildDesc(u);
+        const costCell = isMaxed
+          ? `<span class="maxed">MAXED</span>`
+          : `<div class="cost-current">${formatNum(nextCost)}</div>`;
+        html += `<tr>
       <td><div class="upg-name">${u.name}</div></td>
       <td>
         <div class="level-stepper">
@@ -979,7 +1442,7 @@ function renderUpgrades() {
       </td>
       <td>
         <div class="progress-mini">
-          <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,pct).toFixed(1)}%"></div></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100, pct).toFixed(1)}%"></div></div>
           <span class="progress-pct">${u.maxLevel === 9999 ? u.level : pct.toFixed(0) + '%'}</span>
         </div>
       </td>
@@ -987,419 +1450,479 @@ function renderUpgrades() {
       <td class="cost-cell"><span style="color:var(--text-muted)">${formatNum(spent)}</span></td>
       <td><div class="upg-desc">${desc}</div></td>
     </tr>`;
-  });
-  tbody.innerHTML = html;
-  ['name','level','cost','total'].forEach(col => {
-    const el = document.getElementById('th-' + col);
-    if (!el) return;
-    if (upgSortCol === col) {
-      el.classList.add('sorted');
-      el.querySelector('.sort-arrow').textContent = upgSortDir === 1 ? '↑' : '↓';
-    } else {
-      el.classList.remove('sorted');
-      el.querySelector('.sort-arrow').textContent = '↕';
-    }
-  });
-}
-
-function adjustLevel(id, delta) {
-  const u = UPGRADES[id];
-  u.level = Math.max(0, Math.min(u.maxLevel, u.level + delta));
-  saveLevels(UPGRADES);
-  renderUpgrades();
-}
-function setLevel(id, input) {
-  const u = UPGRADES[id];
-  const parsed = parseInt(input.value);
-  u.level = isNaN(parsed) ? u.level : Math.max(0, Math.min(u.maxLevel, parsed));
-  saveLevels(UPGRADES);
-  renderUpgrades();
-}
-function resetUpgrades() {
-  UPGRADES.forEach(u => { u.level = 0; });
-  saveLevels(UPGRADES);
-  renderUpgrades();
-}
-function sortUpgrades(col) {
-  if (upgSortCol === col) upgSortDir *= -1;
-  else { upgSortCol = col; upgSortDir = 1; }
-  renderUpgrades();
-}
-
-// ─── Accept upgrade from Optimizer ──────────────────────────────────────────
-// Bumps level by 1, persists, re-runs optimizer in-place.
-function acceptUpgrade(upgradeId, rowEl) {
-  const u = UPGRADES[upgradeId];
-  if (!u || u.level >= u.maxLevel) return;
-  u.level += 1;
-  saveLevels(UPGRADES);
-  // Flash the row before re-render
-  rowEl.classList.add('row-accepted');
-  // Re-run optimizer after animation frame so flash is visible
-  setTimeout(() => runOptimizer(), 100);
-}
-
-// ─── Upgrade → Param Mapping ─────────────────────────────────────────────────
-const UPGRADE_PARAM_MAP = {
-  'Base_Damage_I':    { param: 'flatDmg',      type: 'flat' },
-  'Base_Damage_II':   { param: 'flatDmg',      type: 'flat' },
-  'Base_Damage_III':  { param: 'flatDmg',      type: 'flat' },
-  'Mega_Damage_I':    { param: 'multiDmg',     type: 'multi_pct' },
-  'Mega_Damage_II':   { param: 'multiDmg',     type: 'multi_pct' },
-  'Mega_Damage_III':  { param: 'multiDmg',     type: 'multi_pct' },
-  'Extra_Lives':      { param: 'lives',        type: 'additive' },
-  'Numbahs':          { param: 'maxTile',      type: 'additive' },
-  'Bettah_Numbahs':   { param: 'bettah',       type: 'bettah' },
-  'Big_Hit_Combos':   { param: 'combo',        type: 'additive' },
-  'Golden_Tiles':     { param: 'goldenTiles',  type: 'additive' },
-};
-
-function computeParamsFromUpgrades(researchMult) {
-  let flatDmg = 0;
-  let multiDmg = 1.0;
-  let lives = 3;
-  let maxTile = 1;
-  let bettahMult = 1.0;
-  let comboPct = 0;
-  let goldenTiles = 0;
-
-  UPGRADES.forEach(u => {
-    const rawName = u.name.replace(/ /g, '_');
-    const mapping = UPGRADE_PARAM_MAP[rawName];
-    if (!mapping || u.level === 0) return;
-    const val = u.valueIncrement * u.level;
-    if (mapping.param === 'flatDmg')     flatDmg     += val;
-    if (mapping.param === 'multiDmg')    multiDmg    *= (1 + val / 100);
-    if (mapping.param === 'lives')       lives       += u.level;
-    if (mapping.param === 'maxTile')     maxTile     += u.level;
-    if (mapping.param === 'bettah')      bettahMult  = 1 + val / 100;
-    if (mapping.param === 'combo')       comboPct    += val;
-    if (mapping.param === 'goldenTiles') goldenTiles += u.level;
-  });
-
-  const baseDamage = (1 + flatDmg) * multiDmg * researchMult;
-  return { baseDamage, lives, maxTile, bettahMult, comboPct, goldenTiles };
-}
-
-function winForParams(params, opponentHp, boardSize, bombs) {
-  const target = Math.ceil(opponentHp / params.baseDamage);
-  const qty1 = params.maxTile - 1;
-  const qty3 = Math.round((params.bettahMult - 1.0) * 100.0);
-  const dist  = tileDistribution(qty1, qty3);
-  const comboRate = params.comboPct / 100.0;
-  const { bestWin } = evaluateGameExact(
-    target, params.lives, boardSize, bombs, dist, comboRate,
-    opponentHp, params.baseDamage, params.goldenTiles
-  );
-  return bestWin;
-}
-
-function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate, opponentHp, baseDamage, goldenTiles) {
-  goldenTiles = goldenTiles || 0;
-  const G = Math.max(0, goldenTiles);
-  const safeTiles = boardSize - bombs;
-
-  let eTile = 0;
-  for (const v in dist) eTile += Number(v) * dist[v];
-  const goldenBonus = G * eTile;
-
-  const results = {};
-  let bestK = 1, bestWin = -1;
-
-  for (let k = 1; k <= safeTiles; k++) {
-    const pSurvive = comb(safeTiles, k) / comb(boardSize, k);
-
-    let scoreDist = { 0: 1.0 };
-    for (let i = 0; i < k; i++) {
-      const nd = {};
-      for (const curr in scoreDist) {
-        for (const v in dist) {
-          const ns = Number(curr) + Number(v);
-          nd[ns] = (nd[ns] || 0) + scoreDist[curr] * dist[v];
+      });
+      tbody.innerHTML = html;
+      ['name', 'level', 'cost', 'total'].forEach(col => {
+        const el = document.getElementById('th-' + col);
+        if (!el) return;
+        if (upgSortCol === col) {
+          el.classList.add('sorted');
+          el.querySelector('.sort-arrow').textContent = upgSortDir === 1 ? '↑' : '↓';
+        } else {
+          el.classList.remove('sorted');
+          el.querySelector('.sort-arrow').textContent = '↕';
         }
-      }
-      scoreDist = nd;
+      });
     }
 
-    const cm = 1.0 + comboRate * (G + k);
-
-    const roundTarget = comboRate > 0
-      ? Math.ceil(opponentHp / (baseDamage * cm))
-      : target;
-    const capT = Math.max(0, roundTarget - Math.floor(goldenBonus));
-
-    if (capT === 0) {
-      results[k] = { win: 1.0, comboMult: cm };
-      if (1.0 > bestWin) { bestWin = 1.0; bestK = k; }
-      continue;
+    function adjustLevel(id, delta) {
+      const u = UPGRADES[id];
+      u.level = Math.max(0, Math.min(u.maxLevel, u.level + delta));
+      saveLevels(UPGRADES);
+      renderUpgrades();
+    }
+    function setLevel(id, input) {
+      const u = UPGRADES[id];
+      const parsed = parseInt(input.value);
+      u.level = isNaN(parsed) ? u.level : Math.max(0, Math.min(u.maxLevel, parsed));
+      saveLevels(UPGRADES);
+      renderUpgrades();
+    }
+    function resetUpgrades() {
+      UPGRADES.forEach(u => { u.level = 0; });
+      saveLevels(UPGRADES);
+      renderUpgrades();
+    }
+    function sortUpgrades(col) {
+      if (upgSortCol === col) upgSortDir *= -1;
+      else { upgSortCol = col; upgSortDir = 1; }
+      renderUpgrades();
     }
 
-    const dp = [];
-    for (let s = 0; s <= capT; s++) dp[s] = new Float64Array(lives + 1);
-    for (let l = 0; l <= lives; l++) dp[capT][l] = 1.0;
-    for (let l = 1; l <= lives; l++) {
-      for (let s = capT - 1; s >= 0; s--) {
-        let prob = (1 - pSurvive) * dp[s][l - 1];
-        for (const ptsStr in scoreDist) {
-          const newS = Math.min(s + Number(ptsStr), capT);
-          prob += pSurvive * scoreDist[ptsStr] * dp[newS][l];
+    // ─── Accept upgrade from Optimizer ──────────────────────────────────────────
+    // Bumps level by 1, persists, re-runs optimizer in-place.
+    function acceptUpgrade(upgradeId, rowEl) {
+      const u = UPGRADES[upgradeId];
+      if (!u || u.level >= u.maxLevel) return;
+      u.level += 1;
+      saveLevels(UPGRADES);
+      // Flash the row before re-render
+      rowEl.classList.add('row-accepted');
+      // Re-run optimizer after animation frame so flash is visible
+      setTimeout(() => runOptimizer(), 100);
+    }
+
+    // ─── Stage → Boss Stats ───────────────────────────────────────────────────────
+    function calcOpponentHP(t, mineHPLoad = 5) {
+      const a = 5 + (2 * t + Math.pow(t, 2));
+      const b = Math.pow(1.8, t);
+      const c = Math.pow(1.85, Math.floor(Math.max(0, t - 4) / 3));
+      const d = Math.pow(4, Math.floor(Math.max(0, t - 5) / 7));
+      const e = Math.pow(Math.max(1, mineHPLoad), Math.max(0, t - 9));
+      return Math.round(a * b * c * d * e);
+    }
+    function calcBombs(t) {
+      return Math.round(Math.min(
+        40,
+        1 + Math.floor(t / 3)
+        + Math.floor(t / 7)
+        + Math.floor(t / 13)
+        + Math.min(1, Math.floor(t / 15))
+        + Math.floor(t / 17)
+      ));
+    }
+
+    // ─── Grid Expansion ──────────────────────────────────────────────────────────
+    const GRID_EXPANSION_TABLE = [
+      [3, 3], [4, 3], [5, 3], [4, 4], [6, 3], [5, 4], [6, 4], [7, 4], [6, 5],
+      [7, 5], [8, 5], [9, 5], [10, 5], [9, 6], [10, 6], [11, 6], [12, 6]
+    ];
+    // level 0 = index 0 = 3×3 (base), level 1 = index 1 = 4×3, …
+    function gridForLevel(level) {
+      const idx = Math.max(0, Math.min(level, GRID_EXPANSION_TABLE.length - 1));
+      const [x, y] = GRID_EXPANSION_TABLE[idx];
+      return { x, y, size: x * y };
+    }
+
+    // ─── Upgrade → Param Mapping ─────────────────────────────────────────────────
+    const UPGRADE_PARAM_MAP = {
+      'Base_Damage_I': { param: 'flatDmg', type: 'flat' },
+      'Base_Damage_II': { param: 'flatDmg', type: 'flat' },
+      'Base_Damage_III': { param: 'flatDmg', type: 'flat' },
+      'Mega_Damage_I': { param: 'multiDmg', type: 'multi_pct' },
+      'Mega_Damage_II': { param: 'multiDmg', type: 'multi_pct' },
+      'Mega_Damage_III': { param: 'multiDmg', type: 'multi_pct' },
+      'Extra_Lives': { param: 'lives', type: 'additive' },
+      'Numbahs': { param: 'maxTile', type: 'additive' },
+      'Bettah_Numbahs': { param: 'bettah', type: 'bettah' },
+      'Big_Hit_Combos': { param: 'combo', type: 'additive' },
+      'Golden_Tiles': { param: 'goldenTiles', type: 'additive' },
+      'Grid_Expansion': { param: 'gridLevel', type: 'grid' },
+    };
+
+    function computeParamsFromUpgrades(researchMult) {
+      let flatDmg = 0;
+      let multiDmg = 1.0;
+      let lives = 3;
+      let maxTile = 1;
+      let bettahMult = 1.0;
+      let comboPct = 0;
+      let goldenTiles = 0;
+      let gridLevel = 0;
+
+      UPGRADES.forEach(u => {
+        const rawName = u.name.replace(/ /g, '_');
+        const mapping = UPGRADE_PARAM_MAP[rawName];
+        if (!mapping || u.level === 0) return;
+        const val = u.valueIncrement * u.level;
+        if (mapping.param === 'flatDmg') flatDmg += val;
+        if (mapping.param === 'multiDmg') multiDmg *= (1 + val / 100);
+        if (mapping.param === 'lives') lives += u.level;
+        if (mapping.param === 'maxTile') maxTile += u.level;
+        if (mapping.param === 'bettah') bettahMult = 1 + val / 100;
+        if (mapping.param === 'combo') comboPct += val;
+        if (mapping.param === 'goldenTiles') goldenTiles += u.level;
+        if (mapping.param === 'gridLevel') gridLevel = u.level;
+      });
+
+      const baseDamage = (1 + flatDmg) * multiDmg * researchMult;
+      const { x, y, size } = gridForLevel(gridLevel);
+      return { baseDamage, lives, maxTile, bettahMult, comboPct, goldenTiles, boardSize: size, gridX: x, gridY: y };
+    }
+
+    function winForParams(params, opponentHp, bombs) {
+      const target = Math.ceil(opponentHp / params.baseDamage);
+      const qty1 = params.maxTile - 1;
+      const qty3 = Math.round((params.bettahMult - 1.0) * 100.0);
+      const dist = tileDistribution(qty1, qty3);
+      const comboRate = params.comboPct / 100.0;
+      const { bestWin } = evaluateGameExact(
+        target, params.lives, params.boardSize, bombs, dist, comboRate,
+        opponentHp, params.baseDamage, params.goldenTiles
+      );
+      return bestWin;
+    }
+
+    function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate, opponentHp, baseDamage, goldenTiles) {
+      goldenTiles = goldenTiles || 0;
+      const G = Math.max(0, goldenTiles);
+      const safeTiles = boardSize - bombs;
+
+      let eTile = 0;
+      for (const v in dist) eTile += Number(v) * dist[v];
+      const goldenBonus = G * eTile;
+
+      const results = {};
+      let bestK = 1, bestWin = -1;
+
+      for (let k = 1; k <= safeTiles; k++) {
+        const pSurvive = comb(safeTiles, k) / comb(boardSize, k);
+
+        let scoreDist = { 0: 1.0 };
+        for (let i = 0; i < k; i++) {
+          const nd = {};
+          for (const curr in scoreDist) {
+            for (const v in dist) {
+              const ns = Number(curr) + Number(v);
+              nd[ns] = (nd[ns] || 0) + scoreDist[curr] * dist[v];
+            }
+          }
+          scoreDist = nd;
         }
-        dp[s][l] = prob;
+
+        const cm = 1.0 + comboRate * (G + k);
+
+        const roundTarget = comboRate > 0
+          ? Math.ceil(opponentHp / (baseDamage * cm))
+          : target;
+        const capT = Math.max(0, roundTarget - Math.floor(goldenBonus));
+
+        if (capT === 0) {
+          results[k] = { win: 1.0, comboMult: cm };
+          if (1.0 > bestWin) { bestWin = 1.0; bestK = k; }
+          continue;
+        }
+
+        const dp = [];
+        for (let s = 0; s <= capT; s++) dp[s] = new Float64Array(lives + 1);
+        for (let l = 0; l <= lives; l++) dp[capT][l] = 1.0;
+        for (let l = 1; l <= lives; l++) {
+          for (let s = capT - 1; s >= 0; s--) {
+            let prob = (1 - pSurvive) * dp[s][l - 1];
+            for (const ptsStr in scoreDist) {
+              const newS = Math.min(s + Number(ptsStr), capT);
+              prob += pSurvive * scoreDist[ptsStr] * dp[newS][l];
+            }
+            dp[s][l] = prob;
+          }
+        }
+        const w = dp[0][lives];
+        results[k] = { win: w, comboMult: cm };
+        if (w > bestWin) { bestWin = w; bestK = k; }
       }
+
+      return { results, bestK, bestWin, safeTiles, goldenTiles: G, expectedGoldenScore: goldenBonus };
     }
-    const w = dp[0][lives];
-    results[k] = { win: w, comboMult: cm };
-    if (w > bestWin) { bestWin = w; bestK = k; }
-  }
 
-  return { results, bestK, bestWin, safeTiles, goldenTiles: G, expectedGoldenScore: goldenBonus };
-}
+    let lastResults = null;
+    let currentPrecision = 2;
+    let currentComboPct = 0;
+    let currentGolden = 0;
 
-let lastResults = null;
-let currentPrecision = 2;
-let currentComboPct = 0;
-let currentGolden = 0;
+    function formatPercent(w) {
+      const p = w * 100;
+      return currentPrecision === 2 ? p.toFixed(2) : p.toString();
+    }
+    function setPrecision(p) {
+      currentPrecision = p;
+      document.getElementById('prec-2dec').classList.toggle('active', p === 2);
+      document.getElementById('prec-full').classList.toggle('active', p === 0);
+      renderResults();
+    }
+    function renderResults() {
+      if (!lastResults) return;
+      const { results, bestK, bestWin, safeTiles, goldenTiles: G, expectedGoldenScore } = lastResults;
+      document.getElementById('stat-best-k').textContent = bestK;
+      document.getElementById('stat-best-win').textContent = formatPercent(bestWin) + '%';
+      document.getElementById('stat-safe').textContent = safeTiles;
 
-function formatPercent(w) {
-  const p = w * 100;
-  return currentPrecision === 2 ? p.toFixed(2) : p.toString();
-}
-function setPrecision(p) {
-  currentPrecision = p;
-  document.getElementById('prec-2dec').classList.toggle('active', p === 2);
-  document.getElementById('prec-full').classList.toggle('active', p === 0);
-  renderResults();
-}
-function renderResults() {
-  if (!lastResults) return;
-  const { results, bestK, bestWin, safeTiles, goldenTiles: G, expectedGoldenScore } = lastResults;
-  document.getElementById('stat-best-k').textContent = bestK;
-  document.getElementById('stat-best-win').textContent = formatPercent(bestWin) + '%';
-  document.getElementById('stat-safe').textContent = safeTiles;
+      const goldenCard = document.getElementById('stat-golden-card');
+      if (G > 0) {
+        goldenCard.style.display = '';
+        document.getElementById('stat-golden-bonus').textContent = '+' + expectedGoldenScore.toFixed(2) + ' E[pts]';
+      } else {
+        goldenCard.style.display = 'none';
+      }
 
-  const goldenCard = document.getElementById('stat-golden-card');
-  if (G > 0) {
-    goldenCard.style.display = '';
-    document.getElementById('stat-golden-bonus').textContent = '+' + expectedGoldenScore.toFixed(2) + ' E[pts]';
-  } else {
-    goldenCard.style.display = 'none';
-  }
+      const maxWin = Math.max(...Object.values(results).map(r => r.win));
+      const showCombo = currentComboPct > 0;
 
-  const maxWin = Math.max(...Object.values(results).map(r => r.win));
-  const showCombo = currentComboPct > 0;
+      document.getElementById('th-combo').style.display = showCombo ? '' : 'none';
 
-  document.getElementById('th-combo').style.display = showCombo ? '' : 'none';
-
-  const tbody = document.getElementById('table-body');
-  let html = '';
-  for (let k = 1; k <= safeTiles; k++) {
-    const { win, comboMult } = results[k];
-    const pct = formatPercent(win);
-    const barW = maxWin > 0 ? (win / maxWin * 100).toFixed(1) : 0;
-    const isBest = k === bestK;
-    const comboCell = showCombo ? `<td class="eff-dmg">${comboMult.toFixed(2)}×</td>` : '';
-    html += `<tr class="${isBest ? 'best-row' : ''}">
+      const tbody = document.getElementById('table-body');
+      let html = '';
+      for (let k = 1; k <= safeTiles; k++) {
+        const { win, comboMult } = results[k];
+        const pct = formatPercent(win);
+        const barW = maxWin > 0 ? (win / maxWin * 100).toFixed(1) : 0;
+        const isBest = k === bestK;
+        const comboCell = showCombo ? `<td class="eff-dmg">${comboMult.toFixed(2)}×</td>` : '';
+        html += `<tr class="${isBest ? 'best-row' : ''}">
       <td class="flips mono">${k}${isBest ? '<span class="badge">BEST</span>' : ''}</td>
       <td class="winrate mono">${pct}%</td>
       ${comboCell}
       <td><div class="bar-bg"><div class="bar-fill" style="width:${barW}%"></div></div></td>
     </tr>`;
-  }
-  tbody.innerHTML = html;
-}
-
-function comb(n, k) {
-  if (k < 0 || k > n) return 0;
-  if (k === 0 || k === n) return 1;
-  k = Math.min(k, n - k);
-  let r = 1;
-  for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
-  return r;
-}
-function upgradeProb(qty3) {
-  return 0.14 + Math.min(0.06, qty3 / 2000.0) + Math.min(0.5, 0.5 * qty3 / (qty3 + 1500.0));
-}
-function tileDistribution(qty1, qty3) {
-  const p_up = upgradeProb(qty3);
-  const maxTier = Math.floor(qty1) + 1;
-  const baseFrac = Math.min(12.0, qty3 / 150.0);
-  const p_base = {};
-  let totalP = 0;
-  for (let tier = 1; tier <= maxTier; tier++) {
-    let p;
-    if (tier < maxTier) p = Math.max(0, Math.min(baseFrac + 1, tier) - Math.max(baseFrac, tier - 1));
-    else p = Math.max(0, (baseFrac + 1) - Math.max(baseFrac, qty1));
-    p_base[tier] = p;
-    totalP += p;
-  }
-  if (totalP > 0) for (const t in p_base) p_base[t] /= totalP;
-  const finalDist = {};
-  for (let baseTier = 1; baseTier <= maxTier; baseTier++) {
-    const bp = p_base[baseTier] || 0;
-    if (bp <= 0) continue;
-    const upgradesPossible = maxTier - baseTier;
-    for (let finalTier = baseTier; finalTier <= maxTier; finalTier++) {
-      const steps = finalTier - baseTier;
-      let p;
-      if (steps === upgradesPossible) p = Math.pow(p_up, steps);
-      else p = Math.pow(p_up, steps) * (1 - p_up);
-      finalDist[finalTier] = (finalDist[finalTier] || 0) + bp * p;
+      }
+      tbody.innerHTML = html;
     }
-  }
-  return finalDist;
-}
 
-function runCalc() {
-  const BOARD_SIZE  = parseInt(document.getElementById('BOARD_SIZE').value);
-  const BOMBS       = parseInt(document.getElementById('BOMBS').value);
-  const OPPONENT_HP = parseInt(document.getElementById('OPPONENT_HP').value);
-  const RESEARCH    = parseFloat(document.getElementById('RESEARCH_MULT').value) || 1;
-
-  const { baseDamage, lives, maxTile, bettahMult, comboPct, goldenTiles } = computeParamsFromUpgrades(RESEARCH);
-
-  document.getElementById('derived-damage').textContent   = baseDamage.toFixed(2);
-  document.getElementById('derived-max-tile').textContent = maxTile;
-  document.getElementById('derived-bettah').textContent   = bettahMult.toFixed(3);
-  document.getElementById('derived-lives').textContent    = lives;
-  document.getElementById('derived-combo').textContent    = comboPct.toFixed(1) + '%';
-  document.getElementById('derived-golden').textContent   = goldenTiles;
-
-  const qty1 = maxTile - 1;
-  const qty3 = Math.round((bettahMult - 1.0) * 100.0);
-  const target = Math.ceil(OPPONENT_HP / baseDamage);
-  const comboRate = comboPct / 100.0;
-  const p_up = upgradeProb(qty3);
-  const dist = tileDistribution(qty1, qty3);
-
-  document.getElementById('upgrade-pct').textContent = (p_up * 100).toFixed(1) + '%';
-  document.getElementById('target-pts').textContent = target;
-  document.getElementById('upgrade-info').style.display = 'flex';
-
-  const tdEl = document.getElementById('tile-dist');
-  tdEl.innerHTML = '';
-  for (const tier in dist) {
-    const chip = document.createElement('div');
-    chip.className = 'chip mono';
-    chip.innerHTML = `<span class="tier">T${tier}</span> <span class="pct">${(dist[tier] * 100).toFixed(1)}%</span>`;
-    tdEl.appendChild(chip);
-  }
-  if (comboPct > 0) {
-    const c = document.createElement('div');
-    c.className = 'combo-chip mono';
-    c.innerHTML = `⚡ +${comboPct.toFixed(1)}%/flip combo`;
-    tdEl.appendChild(c);
-  }
-  if (goldenTiles > 0) {
-    const c = document.createElement('div');
-    c.className = 'golden-chip mono';
-    c.innerHTML = `✦ ${goldenTiles} golden tile${goldenTiles > 1 ? 's' : ''}`;
-    tdEl.appendChild(c);
-  }
-
-  document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('results-content').style.display = 'none';
-  document.getElementById('stats-row').style.display = 'none';
-  document.getElementById('precision-control').style.display = 'none';
-  document.getElementById('loading').style.display = 'flex';
-
-  setTimeout(() => {
-    const calcResult = evaluateGameExact(
-      target, lives, BOARD_SIZE, BOMBS, dist, comboRate,
-      OPPONENT_HP, baseDamage, goldenTiles
-    );
-    lastResults = calcResult;
-    currentComboPct = comboPct;
-    currentGolden = goldenTiles;
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('results-content').style.display = 'block';
-    document.getElementById('stats-row').style.display = 'grid';
-    document.getElementById('precision-control').style.display = 'flex';
-    renderResults();
-  }, 20);
-}
-
-// ─── Optimizer ───────────────────────────────────────────────────────────────
-function formatDelta(deltaWin) {
-  const p = deltaWin * 100;
-  if (p >= 0.01)   return p.toFixed(4) + '%';
-  if (p >= 0.0001) return p.toFixed(6) + '%';
-  return p.toExponential(2) + '%';
-}
-
-function runOptimizer() {
-  const opponentHp = parseInt(document.getElementById('OPT_HP').value);
-  const bombs      = parseInt(document.getElementById('OPT_BOMBS').value);
-  const boardSize  = parseInt(document.getElementById('OPT_BOARD').value);
-  const research   = parseFloat(document.getElementById('OPT_RESEARCH').value) || 1;
-
-  const baseParams = computeParamsFromUpgrades(research);
-  const baseWin    = winForParams(baseParams, opponentHp, boardSize, bombs);
-
-  document.getElementById('opt-derived-panel').style.display = 'block';
-  document.getElementById('opt-d-dmg').textContent    = baseParams.baseDamage.toFixed(2);
-  document.getElementById('opt-d-lives').textContent  = baseParams.lives;
-  document.getElementById('opt-d-tile').textContent   = baseParams.maxTile;
-  document.getElementById('opt-d-bettah').textContent = baseParams.bettahMult.toFixed(3);
-  document.getElementById('opt-d-combo').textContent  = baseParams.comboPct.toFixed(1) + '%';
-  document.getElementById('opt-d-golden').textContent = baseParams.goldenTiles;
-  document.getElementById('opt-d-win').textContent    = (baseWin * 100).toFixed(3) + '%';
-
-  const rows = [];
-  UPGRADES.forEach(u => {
-    const rawName = u.name.replace(/ /g, '_');
-    const mapping = UPGRADE_PARAM_MAP[rawName];
-    const isMaxed = u.level >= u.maxLevel;
-    const cost = isMaxed ? null : upgradeCost(u.id, u.costScale, u.level);
-    if (!mapping) {
-      rows.push({ u, skip: true, reason: 'no calc effect', deltaWin: 0, efficiency: -Infinity, cost: null });
-      return;
+    function comb(n, k) {
+      if (k < 0 || k > n) return 0;
+      if (k === 0 || k === n) return 1;
+      k = Math.min(k, n - k);
+      let r = 1;
+      for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+      return r;
     }
-    if (isMaxed) {
-      rows.push({ u, skip: true, reason: 'maxed', deltaWin: 0, efficiency: -Infinity, cost: null });
-      return;
+    function upgradeProb(qty3) {
+      return 0.14 + Math.min(0.06, qty3 / 2000.0) + Math.min(0.5, 0.5 * qty3 / (qty3 + 1500.0));
     }
-    u.level += 1;
-    const newParams = computeParamsFromUpgrades(research);
-    const newWin    = winForParams(newParams, opponentHp, boardSize, bombs);
-    u.level -= 1;
-    const deltaWin   = newWin - baseWin;
-    const efficiency = cost > 0 ? deltaWin / cost : 0;
-    rows.push({ u, skip: false, deltaWin, efficiency, cost, newWin });
-  });
+    function tileDistribution(qty1, qty3) {
+      const p_up = upgradeProb(qty3);
+      const maxTier = Math.floor(qty1) + 1;
+      const baseFrac = Math.min(12.0, qty3 / 150.0);
+      const p_base = {};
+      let totalP = 0;
+      for (let tier = 1; tier <= maxTier; tier++) {
+        let p;
+        if (tier < maxTier) p = Math.max(0, Math.min(baseFrac + 1, tier) - Math.max(baseFrac, tier - 1));
+        else p = Math.max(0, (baseFrac + 1) - Math.max(baseFrac, qty1));
+        p_base[tier] = p;
+        totalP += p;
+      }
+      if (totalP > 0) for (const t in p_base) p_base[t] /= totalP;
+      const finalDist = {};
+      for (let baseTier = 1; baseTier <= maxTier; baseTier++) {
+        const bp = p_base[baseTier] || 0;
+        if (bp <= 0) continue;
+        const upgradesPossible = maxTier - baseTier;
+        for (let finalTier = baseTier; finalTier <= maxTier; finalTier++) {
+          const steps = finalTier - baseTier;
+          let p;
+          if (steps === upgradesPossible) p = Math.pow(p_up, steps);
+          else p = Math.pow(p_up, steps) * (1 - p_up);
+          finalDist[finalTier] = (finalDist[finalTier] || 0) + bp * p;
+        }
+      }
+      return finalDist;
+    }
 
-  rows.sort((a, b) => {
-    if (a.skip && b.skip) return 0;
-    if (a.skip) return 1;
-    if (b.skip) return -1;
-    return b.efficiency - a.efficiency;
-  });
+    function runCalc() {
+      //const BOMBS = parseInt(document.getElementById('BOMBS').value);
+      //const OPPONENT_HP = parseInt(document.getElementById('OPPONENT_HP').value);
+      const t = parseInt(document.getElementById('STAGE').value) - 1 || 0;
+      const OPPONENT_HP = calcOpponentHP(t, 5);
+      const BOMBS = calcBombs(t);
+      const RESEARCH = parseFloat(document.getElementById('RESEARCH_MULT').value) || 1;
 
-  const maxEff = Math.max(...rows.filter(r => !r.skip).map(r => r.efficiency), 0);
-  const actionable = rows.filter(r => !r.skip && r.deltaWin > 0).slice(0, 10);
+      const { baseDamage, lives, maxTile, bettahMult, comboPct, goldenTiles, boardSize: upgBoardSize, gridX, gridY } = computeParamsFromUpgrades(RESEARCH);
 
-  if (actionable.length === 0) {
-    document.getElementById('opt-tbody').innerHTML =
-      `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem">No upgrade improves win chance for this configuration.</td></tr>`;
-    document.getElementById('opt-empty').style.display = 'none';
-    document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
-    return;
-  }
+      document.getElementById('derived-damage').textContent = baseDamage.toFixed(2);
+      document.getElementById('derived-max-tile').textContent = maxTile;
+      document.getElementById('derived-bettah').textContent = bettahMult.toFixed(3);
+      document.getElementById('derived-lives').textContent = lives;
+      document.getElementById('derived-combo').textContent = comboPct.toFixed(1) + '%';
+      document.getElementById('derived-golden').textContent = goldenTiles;
+      document.getElementById('derived-grid').textContent = `${gridX}×${gridY} (${upgBoardSize})`;
 
-  let rank = 1;
-  let html = '';
-  actionable.forEach(r => {
-    const { u, deltaWin, efficiency, cost } = r;
-    const isBest = rank === 1;
-    const costStr = formatNum(cost);
-    const deltaStr = `<span class="delta-pos">+${formatDelta(deltaWin)}</span>`;
-    const effStr = efficiency > 0
-      ? (efficiency * 100 * 1e6).toExponential(2) + '<span style="color:var(--text-muted);font-size:0.7rem"> Δ%/M</span>'
-      : '';
-    const barW = maxEff > 0 ? (efficiency / maxEff * 100).toFixed(1) : 0;
-    const barHtml = `<div class="bar-bg" style="height:6px"><div class="bar-fill" style="width:${barW}%;${isBest ? 'background-color:var(--success)' : ''}"></div></div>`;
-    // Accept button: onclick passes upgrade id and the row element itself
-    const acceptBtn = `<button class="accept-btn" onclick="acceptUpgrade(${u.id}, this.closest('tr'))">✓ Accept</button>`;
-    html += `<tr class="${isBest ? 'opt-best' : ''}">
+      const effectiveBoardSize = upgBoardSize;
+
+      const qty1 = maxTile - 1;
+      const qty3 = Math.round((bettahMult - 1.0) * 100.0);
+      const target = Math.ceil(OPPONENT_HP / baseDamage);
+      const comboRate = comboPct / 100.0;
+      const p_up = upgradeProb(qty3);
+      const dist = tileDistribution(qty1, qty3);
+
+      document.getElementById('upgrade-pct').textContent = (p_up * 100).toFixed(1) + '%';
+      document.getElementById('target-pts').textContent = target;
+      document.getElementById('upgrade-info').style.display = 'flex';
+
+      const tdEl = document.getElementById('tile-dist');
+      tdEl.innerHTML = '';
+      for (const tier in dist) {
+        const chip = document.createElement('div');
+        chip.className = 'chip mono';
+        chip.innerHTML = `<span class="tier">T${tier}</span> <span class="pct">${(dist[tier] * 100).toFixed(1)}%</span>`;
+        tdEl.appendChild(chip);
+      }
+      if (comboPct > 0) {
+        const c = document.createElement('div');
+        c.className = 'combo-chip mono';
+        c.innerHTML = `⚡ +${comboPct.toFixed(1)}%/flip combo`;
+        tdEl.appendChild(c);
+      }
+      if (goldenTiles > 0) {
+        const c = document.createElement('div');
+        c.className = 'golden-chip mono';
+        c.innerHTML = `✦ ${goldenTiles} golden tile${goldenTiles > 1 ? 's' : ''}`;
+        tdEl.appendChild(c);
+      }
+
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('results-content').style.display = 'none';
+      document.getElementById('stats-row').style.display = 'none';
+      document.getElementById('precision-control').style.display = 'none';
+      document.getElementById('loading').style.display = 'flex';
+
+      setTimeout(() => {
+        const calcResult = evaluateGameExact(
+          target, lives, effectiveBoardSize, BOMBS, dist, comboRate,
+          OPPONENT_HP, baseDamage, goldenTiles
+        );
+        lastResults = calcResult;
+        currentComboPct = comboPct;
+        currentGolden = goldenTiles;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('results-content').style.display = 'block';
+        document.getElementById('stats-row').style.display = 'grid';
+        document.getElementById('precision-control').style.display = 'flex';
+        renderResults();
+      }, 20);
+    }
+
+    // ─── Stage reactive helpers ───────────────────────────────────────────────────
+    function onStageChange() {
+      const t = parseInt(document.getElementById('STAGE').value) - 1 || 0;
+      const hp = Math.round(calcOpponentHP(t, 5));
+      const bmbs = calcBombs(t);
+      document.getElementById('derived-opp-hp').textContent = hp.toLocaleString();
+      document.getElementById('derived-bombs').textContent = bmbs;
+      saveInputs();
+    }
+
+    function onOptStageChange() {
+      const t = parseInt(document.getElementById('OPT_STAGE').value) - 1 || 0;
+      const hp = Math.round(calcOpponentHP(t, 5));
+      const bmbs = calcBombs(t);
+      document.getElementById('opt-derived-opp-hp').textContent = hp.toLocaleString();
+      document.getElementById('opt-derived-bombs').textContent = bmbs;
+      saveInputs();
+    }
+
+    // ─── Optimizer ───────────────────────────────────────────────────────────────
+    function formatDelta(deltaWin) {
+      const p = deltaWin * 100;
+      if (p >= 0.01) return p.toFixed(4) + '%';
+      if (p >= 0.0001) return p.toFixed(6) + '%';
+      return p.toExponential(2) + '%';
+    }
+
+    function runOptimizer() {
+      const t = parseInt(document.getElementById('OPT_STAGE').value) - 1 || 0;
+      const opponentHp = calcOpponentHP(t, 5);
+      const bombs = calcBombs(t);
+      const research = parseFloat(document.getElementById('OPT_RESEARCH').value) || 1;
+
+      const baseParams = computeParamsFromUpgrades(research);
+      const baseWin = winForParams(baseParams, opponentHp, bombs);
+
+      document.getElementById('opt-derived-panel').style.display = 'block';
+      document.getElementById('opt-d-dmg').textContent = baseParams.baseDamage.toFixed(2);
+      document.getElementById('opt-d-lives').textContent = baseParams.lives;
+      document.getElementById('opt-d-tile').textContent = baseParams.maxTile;
+      document.getElementById('opt-d-bettah').textContent = baseParams.bettahMult.toFixed(3);
+      document.getElementById('opt-d-combo').textContent = baseParams.comboPct.toFixed(1) + '%';
+      document.getElementById('opt-d-golden').textContent = baseParams.goldenTiles;
+      document.getElementById('opt-d-win').textContent = (baseWin * 100).toFixed(3) + '%';
+
+      const rows = [];
+      UPGRADES.forEach(u => {
+        const rawName = u.name.replace(/ /g, '_');
+        const mapping = UPGRADE_PARAM_MAP[rawName];
+        const isMaxed = u.level >= u.maxLevel;
+        const cost = isMaxed ? null : upgradeCost(u.id, u.costScale, u.level);
+        if (!mapping) {
+          rows.push({ u, skip: true, reason: 'no calc effect', deltaWin: 0, efficiency: -Infinity, cost: null });
+          return;
+        }
+        if (isMaxed) {
+          rows.push({ u, skip: true, reason: 'maxed', deltaWin: 0, efficiency: -Infinity, cost: null });
+          return;
+        }
+        u.level += 1;
+        const newParams = computeParamsFromUpgrades(research);
+        const newWin = winForParams(newParams, opponentHp, bombs);
+        u.level -= 1;
+        const deltaWin = newWin - baseWin;
+        const efficiency = cost > 0 ? deltaWin / cost : 0;
+        rows.push({ u, skip: false, deltaWin, efficiency, cost, newWin });
+      });
+
+      rows.sort((a, b) => {
+        if (a.skip && b.skip) return 0;
+        if (a.skip) return 1;
+        if (b.skip) return -1;
+        return b.efficiency - a.efficiency;
+      });
+
+      const maxEff = Math.max(...rows.filter(r => !r.skip).map(r => r.efficiency), 0);
+      const actionable = rows.filter(r => !r.skip && r.deltaWin > 0).slice(0, 10);
+
+      if (actionable.length === 0) {
+        document.getElementById('opt-tbody').innerHTML =
+          `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem">No upgrade improves win chance for this configuration.</td></tr>`;
+        document.getElementById('opt-empty').style.display = 'none';
+        document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
+        return;
+      }
+
+      let rank = 1;
+      let html = '';
+      actionable.forEach(r => {
+        const { u, deltaWin, efficiency, cost } = r;
+        const isBest = rank === 1;
+        const costStr = formatNum(cost);
+        const deltaStr = `<span class="delta-pos">+${formatDelta(deltaWin)}</span>`;
+        const effStr = efficiency > 0
+          ? (efficiency * 100 * 1e6).toExponential(2) + '<span style="color:var(--text-muted);font-size:0.7rem"> Δ%/M</span>'
+          : '';
+        const barW = maxEff > 0 ? (efficiency / maxEff * 100).toFixed(1) : 0;
+        const barHtml = `<div class="bar-bg" style="height:6px"><div class="bar-fill" style="width:${barW}%;${isBest ? 'background-color:var(--success)' : ''}"></div></div>`;
+        // Accept button: onclick passes upgrade id and the row element itself
+        const acceptBtn = `<button class="accept-btn" onclick="acceptUpgrade(${u.id}, this.closest('tr'))">✓ Accept</button>`;
+        html += `<tr class="${isBest ? 'opt-best' : ''}">
       <td class="opt-rank">${rank}${isBest ? '<span class="opt-badge">BEST</span>' : ''}</td>
       <td class="opt-upg-name">${u.name}</td>
       <td class="mono" style="color:var(--text-muted);font-size:0.75rem">${u.level} → ${u.level + 1}</td>
@@ -1409,58 +1932,61 @@ function runOptimizer() {
       <td class="eff-bar-wrap">${barHtml}</td>
       <td>${acceptBtn}</td>
     </tr>`;
-    rank++;
-  });
+        rank++;
+      });
 
-  document.getElementById('opt-tbody').innerHTML = html;
-  document.getElementById('opt-empty').style.display = 'none';
-  document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
-}
+      document.getElementById('opt-tbody').innerHTML = html;
+      document.getElementById('opt-empty').style.display = 'none';
+      document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
+    }
 
-// ─── Tab Switching ────────────────────────────────────────────────────────────
-function switchTab(name, el) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (el) el.classList.add('active');
-  if (name === 'upgrades') renderUpgrades();
-}
+    // ─── Tab Switching ────────────────────────────────────────────────────────────
+    function switchTab(name, el) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      if (el) el.classList.add('active');
+      if (name === 'upgrades') renderUpgrades();
+    }
 
-// ─── Persistence & Theme ──────────────────────────────────────────────────────
-const STORAGE_KEY = 'depth_charge_cfg';
-const THEME_KEY = 'depth_charge_theme';
-const FIELDS = ['BOARD_SIZE','BOMBS','OPPONENT_HP','RESEARCH_MULT','OPT_HP','OPT_BOMBS','OPT_BOARD','OPT_RESEARCH'];
-function saveInputs() {
-  const data = {};
-  FIELDS.forEach(id => { data[id] = document.getElementById(id).value; });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-function loadInputs() {
-  try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (!data) return;
-    FIELDS.forEach(id => { if (data[id] != null) document.getElementById(id).value = data[id]; });
-  } catch(_) {}
-}
-const moonPath = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
-const sunPath = "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z";
-function setTheme(isDark) {
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  document.getElementById('theme-icon').innerHTML = `<path d="${isDark ? sunPath : moonPath}" ${isDark ? 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"' : ''}></path>`;
-  localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
-}
-function toggleTheme() {
-  setTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
-}
-FIELDS.forEach(id => document.getElementById(id).addEventListener('input', saveInputs));
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('tab-calculator').classList.contains('active')) runCalc();
-});
-const savedTheme = localStorage.getItem(THEME_KEY);
-if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) setTheme(true);
-else setTheme(false);
-loadInputs();
-if (localStorage.getItem(STORAGE_KEY)) runCalc();
-</script>
+    // ─── Persistence & Theme ──────────────────────────────────────────────────────
+    const STORAGE_KEY = 'depth_charge_cfg';
+    const THEME_KEY = 'depth_charge_theme';
+    const FIELDS = ['STAGE', 'OPT_STAGE', 'RESEARCH_MULT', 'OPT_RESEARCH'];
+    function saveInputs() {
+      const data = {};
+      FIELDS.forEach(id => { data[id] = document.getElementById(id).value; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    function loadInputs() {
+      try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (!data) return;
+        FIELDS.forEach(id => { if (data[id] != null) document.getElementById(id).value = data[id]; });
+      } catch (_) { }
+    }
+    const moonPath = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
+    const sunPath = "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z";
+    function setTheme(isDark) {
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      document.getElementById('theme-icon').innerHTML = `<path d="${isDark ? sunPath : moonPath}" ${isDark ? 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"' : ''}></path>`;
+      localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+    }
+    function toggleTheme() {
+      setTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
+    }
+    FIELDS.forEach(id => document.getElementById(id).addEventListener('input', saveInputs));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.getElementById('tab-calculator').classList.contains('active')) runCalc();
+    });
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) setTheme(true);
+    else setTheme(false);
+    loadInputs();
+    onStageChange();
+    onOptStageChange();
+    if (localStorage.getItem(STORAGE_KEY)) runCalc();
+  </script>
 </body>
+
 </html>
