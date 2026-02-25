@@ -19,6 +19,9 @@
     --focus-ring: rgba(37, 99, 235, 0.3);
     --warn: #d97706;
     --warn-light: #fef3c7;
+    --gold: #b45309;
+    --gold-light: #fef9c3;
+    --gold-border: #f59e0b;
   }
   [data-theme="dark"] {
     --bg-page: #111111;
@@ -34,6 +37,9 @@
     --focus-ring: rgba(59, 130, 246, 0.4);
     --warn: #f59e0b;
     --warn-light: #292109;
+    --gold: #f59e0b;
+    --gold-light: #1c1500;
+    --gold-border: #b45309;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -61,7 +67,6 @@
   .header h1 { font-size: 1.25rem; font-weight: 600; margin: 0; }
   .header .subtitle { color: var(--text-muted); font-size: 0.875rem; margin-left: 0.75rem; font-weight: 400; }
   .header-right { display: flex; align-items: center; gap: 0.75rem; }
-  /* Tab nav */
   .tab-nav {
     display: flex;
     gap: 0;
@@ -162,7 +167,13 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--focus-ring);
   }
+  /* Golden tile input gets gold styling */
+  input[type="number"].golden-input:focus {
+    border-color: var(--gold-border);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+  }
   .field-hint { font-size: 0.7rem; color: var(--text-muted); }
+  .field-hint.gold-hint { color: var(--gold); }
   .btn {
     display: block;
     width: 100%;
@@ -191,7 +202,7 @@
   .upgrade-info .val { font-weight: 600; color: var(--text-main); }
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
     flex-shrink: 0;
   }
@@ -204,9 +215,15 @@
     flex-direction: column;
     gap: 0.25rem;
   }
+  .stat-card.golden {
+    border-color: var(--gold-border);
+    background-color: var(--gold-light);
+  }
   .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+  .stat-card.golden .stat-label { color: var(--gold); }
   .stat-val { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
   .stat-val.highlight { color: var(--accent); }
+  .stat-val.gold-val { color: var(--gold); }
   .tile-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
   .chip {
     background-color: var(--bg-page);
@@ -227,6 +244,18 @@
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  .golden-chip {
+    background-color: var(--gold-light);
+    border: 1px solid var(--gold-border);
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gold);
     display: flex;
     align-items: center;
     gap: 0.375rem;
@@ -308,6 +337,20 @@
     border-color: var(--accent);
   }
   .prec-btn:hover:not(.active) { background-color: var(--accent-light); }
+
+  /* Golden tile section in sidebar */
+  .golden-section {
+    border: 1px solid var(--gold-border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    background: var(--gold-light);
+  }
+  .golden-section .panel-title { color: var(--gold); }
+  .golden-section label { color: var(--gold); }
+  .golden-section input[type="number"] {
+    border-color: var(--gold-border);
+    background-color: var(--bg-page);
+  }
 
   /* ── Upgrades Tab ── */
   .upgrades-layout {
@@ -466,6 +509,7 @@
     color: var(--text-muted);
   }
   .derived-row .mono { font-weight: 700; color: var(--accent); }
+  .derived-row.golden-row .mono { color: var(--gold); }
   .optimizer-layout {
     display: flex;
     flex: 1;
@@ -491,23 +535,6 @@
     min-width: 0;
     gap: 1rem;
   }
-  .opt-derived {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.75rem;
-    flex-shrink: 0;
-  }
-  .derived-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-  .derived-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-  .derived-val { font-size: 1.1rem; font-weight: 700; color: var(--accent); font-family: ui-monospace, monospace; }
   .opt-table-wrap {
     flex: 1;
     background-color: var(--bg-panel);
@@ -543,7 +570,6 @@
   .opt-table tr.opt-best .opt-rank { color: var(--success); }
   .opt-upg-name { font-weight: 600; white-space: nowrap; }
   .opt-table tr.opt-best .opt-upg-name { color: var(--success); }
-  .opt-skip { color: var(--text-muted); font-size: 0.75rem; font-style: italic; }
   .delta-pos { color: var(--success); font-weight: 700; font-family: monospace; }
   .delta-zero { color: var(--text-muted); font-family: monospace; }
   .eff-bar-wrap { min-width: 80px; }
@@ -574,6 +600,7 @@
     .table-container { min-height: 400px; overflow: visible; }
     .upg-table-wrap { min-height: 400px; }
     .tab-panel.active { display: block; overflow: visible; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -630,6 +657,7 @@
           <div class="derived-row"><span>Bettah Mult</span><span class="mono" id="derived-bettah">—</span></div>
           <div class="derived-row"><span>Lives</span><span class="mono" id="derived-lives">—</span></div>
           <div class="derived-row"><span>Combo %</span><span class="mono" id="derived-combo">—</span></div>
+          <div class="derived-row golden-row"><span>Golden Tiles</span><span class="mono" id="derived-golden">—</span></div>
         </div>
         <button class="btn" onclick="runCalc()">Calculate Strategy</button>
       </div>
@@ -653,6 +681,10 @@
           <span class="stat-label">Safe Tiles</span>
           <span class="stat-val mono" id="stat-safe">—</span>
         </div>
+        <div class="stat-card golden" id="stat-golden-card" style="display:none">
+          <span class="stat-label">Golden Bonus</span>
+          <span class="stat-val gold-val mono" id="stat-golden-bonus">—</span>
+        </div>
       </div>
 
       <div id="precision-control" class="precision-control" style="display:none">
@@ -671,8 +703,9 @@
               <tr>
                 <th style="width: 12%">Flips</th>
                 <th style="width: 20%">Win Rate</th>
-                <th style="width: 20%">Eff. Damage</th>
-                <th style="width: 48%">Probability Visual</th>
+                <th id="th-combo" style="width: 12%; display:none">Combo ×</th>
+
+                <th>Probability Visual</th>
               </tr>
             </thead>
             <tbody id="table-body"></tbody>
@@ -746,6 +779,7 @@
           <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Max Tile</span><span class="mono" id="opt-d-tile" style="font-weight:700">—</span></div>
           <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Bettah Mult</span><span class="mono" id="opt-d-bettah" style="font-weight:700">—</span></div>
           <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Combo %</span><span class="mono" id="opt-d-combo" style="font-weight:700">—</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--gold)">Golden Tiles</span><span class="mono" id="opt-d-golden" style="font-weight:700;color:var(--gold)">—</span></div>
           <hr style="border:none;border-top:1px solid var(--border)">
           <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Current Win %</span><span class="mono" id="opt-d-win" style="font-weight:700;color:var(--accent)">—</span></div>
         </div>
@@ -813,27 +847,19 @@ function getRawUpgrades() {
   ];
 }
 
-// [name, maxLevel, costScale, valueIncrement, currentLevel, description]
-// id = index (0-based)
-
 function baseCost(id) {
   return (5 + id + Math.pow(Math.max(0, id - 2), 1.3)) * Math.pow(2, Math.max(0, id - 4));
 }
-
 function upgradeCost(id, costScale, currentLevel) {
-  // cost to buy the NEXT level (i.e. from currentLevel -> currentLevel+1)
   return baseCost(id) * Math.pow(costScale, currentLevel);
 }
-
 function totalSpent(id, costScale, currentLevel) {
-  // sum of baseCost * costScale^i for i in [0, currentLevel-1]
   if (currentLevel === 0) return 0;
   const b = baseCost(id);
   const s = costScale;
   if (Math.abs(s - 1) < 1e-9) return b * currentLevel;
   return b * (Math.pow(s, currentLevel) - 1) / (s - 1);
 }
-
 function parseUpgrades() {
   const raw = getRawUpgrades();
   return raw.map((cols, id) => ({
@@ -847,7 +873,6 @@ function parseUpgrades() {
   }));
 }
 
-// Persistent level state (keyed by id)
 const UPG_LEVELS_KEY = 'dc_upg_levels';
 function loadLevels(upgrades) {
   try {
@@ -868,7 +893,7 @@ let UPGRADES = parseUpgrades();
 loadLevels(UPGRADES);
 
 let upgSortCol = null;
-let upgSortDir = 1; // 1 asc, -1 desc
+let upgSortDir = 1;
 
 function formatNum(n) {
   if (!isFinite(n)) return '∞';
@@ -878,14 +903,8 @@ function formatNum(n) {
   if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
   return Math.round(n).toLocaleString();
 }
-
 function buildDesc(u) {
-  // Replace { with valueIncrement * level (current value)
-  // } is also sometimes used as a "multiplier" placeholder – treat same way
-  // $ is "special value" – we just italicize it as [?]
-  const val = (u.valueIncrement * u.level).toFixed(
-    Number.isInteger(u.valueIncrement) ? 0 : 2
-  );
+  const val = (u.valueIncrement * u.level).toFixed(Number.isInteger(u.valueIncrement) ? 0 : 2);
   let d = u.descRaw;
   d = d.replace(/\{/g, `<em>${val}</em>`);
   d = d.replace(/\}/g, `<em>${val}</em>`);
@@ -895,9 +914,7 @@ function buildDesc(u) {
 
 function renderUpgrades() {
   const query = (document.getElementById('upg-search').value || '').toLowerCase();
-
   let list = UPGRADES.filter(u => !query || u.name.toLowerCase().includes(query) || u.descRaw.toLowerCase().replace(/_/g,' ').includes(query));
-
   if (upgSortCol) {
     list = list.slice().sort((a, b) => {
       let va, vb;
@@ -914,11 +931,9 @@ function renderUpgrades() {
       return upgSortDir * (va - vb);
     });
   }
-
   let totalCost = 0;
   UPGRADES.forEach(u => { totalCost += totalSpent(u.id, u.costScale, u.level); });
   document.getElementById('upg-total-cost').textContent = formatNum(totalCost);
-
   const tbody = document.getElementById('upg-tbody');
   let html = '';
   list.forEach(u => {
@@ -928,25 +943,15 @@ function renderUpgrades() {
     const spent = totalSpent(u.id, u.costScale, u.level);
     const pct = u.maxLevel > 0 ? (u.level / u.maxLevel * 100) : 0;
     const desc = buildDesc(u);
-
     const costCell = isMaxed
       ? `<span class="maxed">MAXED</span>`
       : `<div class="cost-current">${formatNum(nextCost)}</div>`;
-
     html += `<tr>
       <td><div class="upg-name">${u.name}</div></td>
       <td>
         <div class="level-stepper">
           <button class="stepper-btn" onclick="adjustLevel(${u.id},-1)" ${canDec ? '' : 'disabled'}>−</button>
-          <input
-            class="stepper-input"
-            type="number"
-            min="0"
-            max="${u.maxLevel === 9999 ? 999999 : u.maxLevel}"
-            value="${u.level}"
-            onchange="setLevel(${u.id}, this)"
-            onkeydown="if(event.key==='Enter')this.blur()"
-          >
+          <input class="stepper-input" type="number" min="0" max="${u.maxLevel === 9999 ? 999999 : u.maxLevel}" value="${u.level}" onchange="setLevel(${u.id}, this)" onkeydown="if(event.key==='Enter')this.blur()">
           <button class="stepper-btn" onclick="adjustLevel(${u.id},+1)" ${isMaxed ? 'disabled' : ''}>+</button>
           <span class="stepper-max">/ ${u.maxLevel === 9999 ? '∞' : u.maxLevel}</span>
         </div>
@@ -963,8 +968,6 @@ function renderUpgrades() {
     </tr>`;
   });
   tbody.innerHTML = html;
-
-  // Update sort header highlights
   ['name','level','cost','total'].forEach(col => {
     const el = document.getElementById('th-' + col);
     if (!el) return;
@@ -984,7 +987,6 @@ function adjustLevel(id, delta) {
   saveLevels(UPGRADES);
   renderUpgrades();
 }
-
 function setLevel(id, input) {
   const u = UPGRADES[id];
   const parsed = parseInt(input.value);
@@ -992,13 +994,11 @@ function setLevel(id, input) {
   saveLevels(UPGRADES);
   renderUpgrades();
 }
-
 function resetUpgrades() {
   UPGRADES.forEach(u => { u.level = 0; });
   saveLevels(UPGRADES);
   renderUpgrades();
 }
-
 function sortUpgrades(col) {
   if (upgSortCol === col) upgSortDir *= -1;
   else { upgSortCol = col; upgSortDir = 1; }
@@ -1006,173 +1006,201 @@ function sortUpgrades(col) {
 }
 
 // ─── Upgrade → Param Mapping ─────────────────────────────────────────────────
-// Maps upgrade name → which param it affects and how
 const UPGRADE_PARAM_MAP = {
-  'Base_Damage_I':    { param: 'flatDmg',   type: 'flat' },
-  'Base_Damage_II':   { param: 'flatDmg',   type: 'flat' },
-  'Base_Damage_III':  { param: 'flatDmg',   type: 'flat' },
-  'Mega_Damage_I':    { param: 'multiDmg',  type: 'multi_pct' },
-  'Mega_Damage_II':   { param: 'multiDmg',  type: 'multi_pct' },
-  'Mega_Damage_III':  { param: 'multiDmg',  type: 'multi_pct' },
-  'Extra_Lives':      { param: 'lives',     type: 'additive' },
-  'Numbahs':          { param: 'maxTile',   type: 'additive' },
-  'Bettah_Numbahs':   { param: 'bettah',    type: 'bettah' },
-  'Big_Hit_Combos':   { param: 'combo',     type: 'additive' },
+  'Base_Damage_I':    { param: 'flatDmg',      type: 'flat' },
+  'Base_Damage_II':   { param: 'flatDmg',      type: 'flat' },
+  'Base_Damage_III':  { param: 'flatDmg',      type: 'flat' },
+  'Mega_Damage_I':    { param: 'multiDmg',     type: 'multi_pct' },
+  'Mega_Damage_II':   { param: 'multiDmg',     type: 'multi_pct' },
+  'Mega_Damage_III':  { param: 'multiDmg',     type: 'multi_pct' },
+  'Extra_Lives':      { param: 'lives',        type: 'additive' },
+  'Numbahs':          { param: 'maxTile',      type: 'additive' },
+  'Bettah_Numbahs':   { param: 'bettah',       type: 'bettah' },
+  'Big_Hit_Combos':   { param: 'combo',        type: 'additive' },
+  'Golden_Tiles':     { param: 'goldenTiles',  type: 'additive' },
 };
 
 // Compute all calculator params from current upgrade levels + research mult
 function computeParamsFromUpgrades(researchMult) {
-  let flatDmg = 0;      // sum of flat bonuses
-  let multiDmg = 1.0;   // product of multi bonuses
+  let flatDmg = 0;
+  let multiDmg = 1.0;
   let lives = 3;
-  let maxTile = 1;      // base max tile (no Numbahs)
+  let maxTile = 1;
   let bettahMult = 1.0;
   let comboPct = 0;
+  let goldenTiles = 0;
 
   UPGRADES.forEach(u => {
     const rawName = u.name.replace(/ /g, '_');
     const mapping = UPGRADE_PARAM_MAP[rawName];
     if (!mapping || u.level === 0) return;
     const val = u.valueIncrement * u.level;
-    if (mapping.param === 'flatDmg')  flatDmg  += val;
-    if (mapping.param === 'multiDmg') multiDmg *= (1 + val / 100);
-    if (mapping.param === 'lives')    lives    += u.level;    // each level = +1 life
-    if (mapping.param === 'maxTile')  maxTile  += u.level;    // each level = +1 max tile num
-    if (mapping.param === 'bettah')   bettahMult = 1 + val / 100;
-    if (mapping.param === 'combo')    comboPct += val;
+    if (mapping.param === 'flatDmg')     flatDmg     += val;
+    if (mapping.param === 'multiDmg')    multiDmg    *= (1 + val / 100);
+    if (mapping.param === 'lives')       lives       += u.level;
+    if (mapping.param === 'maxTile')     maxTile     += u.level;
+    if (mapping.param === 'bettah')      bettahMult  = 1 + val / 100;
+    if (mapping.param === 'combo')       comboPct    += val;
+    if (mapping.param === 'goldenTiles') goldenTiles += u.level;
   });
 
   const baseDamage = (1 + flatDmg) * multiDmg * researchMult;
-  return { baseDamage, lives, maxTile, bettahMult, comboPct };
+  return { baseDamage, lives, maxTile, bettahMult, comboPct, goldenTiles };
 }
 
-// Run evaluateGameExact for a given param set and return the best win rate
 function winForParams(params, opponentHp, boardSize, bombs) {
   const target = Math.ceil(opponentHp / params.baseDamage);
   const qty1 = params.maxTile - 1;
   const qty3 = Math.round((params.bettahMult - 1.0) * 100.0);
   const dist  = tileDistribution(qty1, qty3);
   const comboRate = params.comboPct / 100.0;
-  const { bestWin } = evaluateGameExact(target, params.lives, boardSize, bombs, dist, comboRate, opponentHp, params.baseDamage);
+  const { bestWin } = evaluateGameExact(
+    target, params.lives, boardSize, bombs, dist, comboRate,
+    opponentHp, params.baseDamage, params.goldenTiles
+  );
   return bestWin;
 }
 
-// ─── Optimizer ───────────────────────────────────────────────────────────────
-function formatDelta(deltaWin) {
-  const p = deltaWin * 100;
-  if (p >= 0.01)   return p.toFixed(4) + '%';
-  if (p >= 0.0001) return p.toFixed(6) + '%';
-  return p.toExponential(2) + '%';
-}
-function runOptimizer() {
-  const opponentHp = parseInt(document.getElementById('OPT_HP').value);
-  const bombs      = parseInt(document.getElementById('OPT_BOMBS').value);
-  const boardSize  = parseInt(document.getElementById('OPT_BOARD').value);
-  const research   = parseFloat(document.getElementById('OPT_RESEARCH').value) || 1;
+// ─── Golden Tile Score Contribution ─────────────────────────────────────────
+// Golden tiles are G guaranteed-safe clicks per game, used up once.
+// Each contributes one draw from the tile dist → total bonus = G * E[tile].
+// They do NOT change board size or bomb probability — the random rounds
+// play out on the full original board.
+//
+// The bonus reduces the score gap the random rounds must close:
+//   effectiveTarget = max(0, target - goldenBonus)
+//
+// For combo: golden tiles count as flips in the round they're clicked.
+// Since the game description says they're all clicked (used up) each game,
+// and the combo resets per turn, we treat them as clicked in round 1 alongside
+// the first k random flips, adding G to the combo count for that round only.
 
-  const baseParams = computeParamsFromUpgrades(research);
-  const baseWin    = winForParams(baseParams, opponentHp, boardSize, bombs);
+function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate, opponentHp, baseDamage, goldenTiles) {
+  goldenTiles = goldenTiles || 0;
+  const G = Math.max(0, goldenTiles);
+  const safeTiles = boardSize - bombs;
 
-  // Show derived state panel
-  document.getElementById('opt-derived-panel').style.display = 'block';
-  document.getElementById('opt-d-dmg').textContent   = baseParams.baseDamage.toFixed(2);
-  document.getElementById('opt-d-lives').textContent = baseParams.lives;
-  document.getElementById('opt-d-tile').textContent  = baseParams.maxTile;
-  document.getElementById('opt-d-bettah').textContent = baseParams.bettahMult.toFixed(3);
-  document.getElementById('opt-d-combo').textContent  = baseParams.comboPct.toFixed(1) + '%';
-  document.getElementById('opt-d-win').textContent    = (baseWin * 100).toFixed(3) + '%';
+  // E[tile] from dist — expected points per golden tile click
+  let eTile = 0;
+  for (const v in dist) eTile += Number(v) * dist[v];
+  const goldenBonus = G * eTile;  // expected total score contribution, used once
 
-  // Evaluate each upgrade's next level
-  const rows = [];
-  UPGRADES.forEach(u => {
-    const rawName = u.name.replace(/ /g, '_');
-    const mapping = UPGRADE_PARAM_MAP[rawName];
-    const isMaxed = u.level >= u.maxLevel;
-    const cost = isMaxed ? null : upgradeCost(u.id, u.costScale, u.level);
+  const results = {};
+  let bestK = 1, bestWin = -1;
 
-    if (!mapping) {
-      rows.push({ u, skip: true, reason: 'no calc effect', deltaWin: 0, efficiency: -Infinity, cost: null });
-      return;
+  for (let k = 1; k <= safeTiles; k++) {
+    // Board and survival are unchanged — golden tiles don't consume board slots
+    const pSurvive = comb(safeTiles, k) / comb(boardSize, k);
+
+    // Score distribution for k random flips this round
+    let scoreDist = { 0: 1.0 };
+    for (let i = 0; i < k; i++) {
+      const nd = {};
+      for (const curr in scoreDist) {
+        for (const v in dist) {
+          const ns = Number(curr) + Number(v);
+          nd[ns] = (nd[ns] || 0) + scoreDist[curr] * dist[v];
+        }
+      }
+      scoreDist = nd;
     }
-    if (isMaxed) {
-      rows.push({ u, skip: true, reason: 'maxed', deltaWin: 0, efficiency: -Infinity, cost: null });
-      return;
+
+    // Combo applies to all flips in the turn.
+    // Golden tiles are clicked once (round 1), so add G to that round's flip count.
+    // For simplicity we add G to every round's combo since they were all clicked
+    // this game — the user is choosing k flips per round, golden tiles are
+    // an additional constant flip count that happened this game.
+    const cm = 1.0 + comboRate * (G + k);
+
+    // Effective remaining target after subtracting guaranteed golden score.
+    // With combo, total damage per point = baseDamage * cm, so target in points
+    // is ceil(hp / (baseDamage * cm)). Golden bonus in those same units = goldenBonus.
+    const roundTarget = comboRate > 0
+      ? Math.ceil(opponentHp / (baseDamage * cm))
+      : target;
+    const capT = Math.max(0, roundTarget - Math.floor(goldenBonus));
+
+    if (capT === 0) {
+      // Golden tiles alone beat the boss — guaranteed win
+      results[k] = { win: 1.0, comboMult: cm };
+      if (1.0 > bestWin) { bestWin = 1.0; bestK = k; }
+      continue;
     }
 
-    // Simulate buying next level: temporarily bump this upgrade
-    u.level += 1;
-    const newParams = computeParamsFromUpgrades(research);
-    const newWin    = winForParams(newParams, opponentHp, boardSize, bombs);
-    u.level -= 1;
-
-    const deltaWin   = newWin - baseWin;
-    const efficiency = cost > 0 ? deltaWin / cost : 0;
-    rows.push({ u, skip: false, deltaWin, efficiency, cost, newWin });
-  });
-
-  // Sort: skipped go to bottom, rest by efficiency desc
-  rows.sort((a, b) => {
-    if (a.skip && b.skip) return 0;
-    if (a.skip) return 1;
-    if (b.skip) return -1;
-    return b.efficiency - a.efficiency;
-  });
-
-  const maxEff = Math.max(...rows.filter(r => !r.skip).map(r => r.efficiency), 0);
-
-  // Only show upgrades that actually improve win chance, top 10
-  const actionable = rows.filter(r => !r.skip && r.deltaWin > 0)
-                         .slice(0, 10);
-
-  if (actionable.length === 0) {
-    document.getElementById('opt-tbody').innerHTML =
-      `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No upgrade improves win chance for this configuration.</td></tr>`;
-    document.getElementById('opt-empty').style.display = 'none';
-    document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
-    return;
+    const dp = [];
+    for (let s = 0; s <= capT; s++) dp[s] = new Float64Array(lives + 1);
+    for (let l = 0; l <= lives; l++) dp[capT][l] = 1.0;
+    for (let l = 1; l <= lives; l++) {
+      for (let s = capT - 1; s >= 0; s--) {
+        let prob = (1 - pSurvive) * dp[s][l - 1];
+        for (const ptsStr in scoreDist) {
+          const newS = Math.min(s + Number(ptsStr), capT);
+          prob += pSurvive * scoreDist[ptsStr] * dp[newS][l];
+        }
+        dp[s][l] = prob;
+      }
+    }
+    const w = dp[0][lives];
+    results[k] = { win: w, comboMult: cm };
+    if (w > bestWin) { bestWin = w; bestK = k; }
   }
 
-  let rank = 1;
+  return { results, bestK, bestWin, safeTiles, goldenTiles: G, expectedGoldenScore: goldenBonus };
+}
+
+let lastResults = null;
+let currentPrecision = 2;
+let currentComboPct = 0;
+let currentGolden = 0;
+
+function formatPercent(w) {
+  const p = w * 100;
+  return currentPrecision === 2 ? p.toFixed(2) : p.toString();
+}
+function setPrecision(p) {
+  currentPrecision = p;
+  document.getElementById('prec-2dec').classList.toggle('active', p === 2);
+  document.getElementById('prec-full').classList.toggle('active', p === 0);
+  renderResults();
+}
+function renderResults() {
+  if (!lastResults) return;
+  const { results, bestK, bestWin, safeTiles, goldenTiles: G, expectedGoldenScore } = lastResults;
+  document.getElementById('stat-best-k').textContent = bestK;
+  document.getElementById('stat-best-win').textContent = formatPercent(bestWin) + '%';
+  document.getElementById('stat-safe').textContent = safeTiles;
+
+  const goldenCard = document.getElementById('stat-golden-card');
+  if (G > 0) {
+    goldenCard.style.display = '';
+    document.getElementById('stat-golden-bonus').textContent = '+' + expectedGoldenScore.toFixed(2) + ' E[pts]';
+  } else {
+    goldenCard.style.display = 'none';
+  }
+
+  const maxWin = Math.max(...Object.values(results).map(r => r.win));
+  const showCombo = currentComboPct > 0;
+
+  document.getElementById('th-combo').style.display = showCombo ? '' : 'none';
+
+  const tbody = document.getElementById('table-body');
   let html = '';
-  actionable.forEach(r => {
-    const { u, deltaWin, efficiency, cost } = r;
-    const isBest = rank === 1;
-    const costStr = formatNum(cost);
-    const deltaStr = `<span class="delta-pos">+${formatDelta(deltaWin)}</span>`;
-    const effStr = efficiency > 0
-      ? (efficiency * 100 * 1e6).toExponential(2) + '<span style="color:var(--text-muted);font-size:0.7rem"> Δ%/M</span>'
-      : '';
-    const barW = maxEff > 0 ? (efficiency / maxEff * 100).toFixed(1) : 0;
-    const barHtml = `<div class="bar-bg" style="height:6px"><div class="bar-fill" style="width:${barW}%;${isBest ? 'background-color:var(--success)' : ''}"></div></div>`;
-    const rowClass = isBest ? 'opt-best' : '';
-
-    html += `<tr class="${rowClass}">
-      <td class="opt-rank">${rank}${isBest ? '<span class="opt-badge">BEST</span>' : ''}</td>
-      <td class="opt-upg-name">${u.name}</td>
-      <td class="mono" style="color:var(--text-muted);font-size:0.75rem">${u.level} → ${u.level + 1}</td>
-      <td class="cost-cell">${costStr}</td>
-      <td>${deltaStr}</td>
-      <td class="mono" style="font-size:0.75rem">${effStr}</td>
-      <td class="eff-bar-wrap">${barHtml}</td>
+  for (let k = 1; k <= safeTiles; k++) {
+    const { win, comboMult } = results[k];
+    const pct = formatPercent(win);
+    const barW = maxWin > 0 ? (win / maxWin * 100).toFixed(1) : 0;
+    const isBest = k === bestK;
+    const comboCell = showCombo ? `<td class="eff-dmg">${comboMult.toFixed(2)}×</td>` : '';
+    html += `<tr class="${isBest ? 'best-row' : ''}">
+      <td class="flips mono">${k}${isBest ? '<span class="badge">BEST</span>' : ''}</td>
+      <td class="winrate mono">${pct}%</td>
+      ${comboCell}
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${barW}%"></div></div></td>
     </tr>`;
-    rank++;
-  });
-
-  document.getElementById('opt-tbody').innerHTML = html;
-  document.getElementById('opt-empty').style.display = 'none';
-  document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
+  }
+  tbody.innerHTML = html;
 }
 
-// ─── Tab Switching ───────────────────────────────────────────────────────────
-function switchTab(name, el) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (el) el.classList.add('active');
-  if (name === 'upgrades') renderUpgrades();
-}
-
-// ─── Calculator Logic ────────────────────────────────────────────────────────
 function comb(n, k) {
   if (k < 0 || k > n) return 0;
   if (k === 0 || k === n) return 1;
@@ -1213,103 +1241,21 @@ function tileDistribution(qty1, qty3) {
   }
   return finalDist;
 }
-function comboMultiplier(k, comboRate) { return 1.0 + comboRate * k; }
-function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate, opponentHp, baseDamage) {
-  const safeTiles = boardSize - bombs;
-  const results = {};
-  let bestK = 1, bestWin = -1;
-  for (let k = 1; k <= safeTiles; k++) {
-    const pSurvive = comb(safeTiles, k) / comb(boardSize, k);
-    let scoreDist = { 0: 1.0 };
-    for (let i = 0; i < k; i++) {
-      const newDist = {};
-      for (const curr in scoreDist) {
-        for (const v in dist) {
-          const newSum = Number(curr) + Number(v);
-          newDist[newSum] = (newDist[newSum] || 0) + scoreDist[curr] * dist[v];
-        }
-      }
-      scoreDist = newDist;
-    }
-    // Combo multiplier scales damage, so it effectively reduces the target needed.
-    // Apply it to target instead of rounding up tile points (which causes ceil artifacts).
-    const cm = 1.0 + comboRate * k;
-    const effectiveTarget = comboRate > 0
-      ? Math.ceil(opponentHp / (baseDamage * cm))
-      : target;
-    const capT = effectiveTarget;
-    const dp = [];
-    for (let s = 0; s <= capT; s++) dp[s] = new Float64Array(lives + 1);
-    for (let l = 0; l <= lives; l++) dp[capT][l] = 1.0;
-    for (let l = 1; l <= lives; l++) {
-      for (let s = capT - 1; s >= 0; s--) {
-        let prob = (1 - pSurvive) * dp[s][l - 1];
-        for (const ptsStr in scoreDist) {
-          const newS = Math.min(s + Number(ptsStr), capT);
-          prob += pSurvive * scoreDist[ptsStr] * dp[newS][l];
-        }
-        dp[s][l] = prob;
-      }
-    }
-    const w = dp[0][lives];
-    results[k] = { win: w, comboMult: cm };
-    if (w > bestWin) { bestWin = w; bestK = k; }
-  }
-  return { results, bestK, bestWin, safeTiles };
-}
 
-let lastResults = null;
-let currentPrecision = 2;
-let currentComboPct = 0;
-
-function formatPercent(w) {
-  const p = w * 100;
-  return currentPrecision === 2 ? p.toFixed(2) : p.toString();
-}
-function setPrecision(p) {
-  currentPrecision = p;
-  document.getElementById('prec-2dec').classList.toggle('active', p === 2);
-  document.getElementById('prec-full').classList.toggle('active', p === 0);
-  renderResults();
-}
-function renderResults() {
-  if (!lastResults) return;
-  const { results, bestK, bestWin, safeTiles } = lastResults;
-  document.getElementById('stat-best-k').textContent = bestK;
-  document.getElementById('stat-best-win').textContent = formatPercent(bestWin) + '%';
-  document.getElementById('stat-safe').textContent = safeTiles;
-  const maxWin = Math.max(...Object.values(results).map(r => r.win));
-  const tbody = document.getElementById('table-body');
-  let html = '';
-  for (let k = 1; k <= safeTiles; k++) {
-    const { win, comboMult } = results[k];
-    const pct = formatPercent(win);
-    const barW = maxWin > 0 ? (win / maxWin * 100).toFixed(1) : 0;
-    const isBest = k === bestK;
-    const effDmgStr = currentComboPct > 0 ? `×${comboMult.toFixed(2)}` : '';
-    html += `<tr class="${isBest ? 'best-row' : ''}">
-      <td class="flips mono">${k}${isBest ? '<span class="badge">BEST</span>' : ''}</td>
-      <td class="winrate mono">${pct}%</td>
-      <td class="eff-dmg mono" style="display:${currentComboPct > 0 ? '' : 'none'}">${effDmgStr}</td>
-      <td><div class="bar-bg"><div class="bar-fill" style="width:${barW}%"></div></div></td>
-    </tr>`;
-  }
-  tbody.innerHTML = html;
-}
 function runCalc() {
-  const BOARD_SIZE   = parseInt(document.getElementById('BOARD_SIZE').value);
-  const BOMBS        = parseInt(document.getElementById('BOMBS').value);
-  const OPPONENT_HP  = parseInt(document.getElementById('OPPONENT_HP').value);
-  const RESEARCH     = parseFloat(document.getElementById('RESEARCH_MULT').value) || 1;
+  const BOARD_SIZE  = parseInt(document.getElementById('BOARD_SIZE').value);
+  const BOMBS       = parseInt(document.getElementById('BOMBS').value);
+  const OPPONENT_HP = parseInt(document.getElementById('OPPONENT_HP').value);
+  const RESEARCH    = parseFloat(document.getElementById('RESEARCH_MULT').value) || 1;
 
-  const { baseDamage, lives, maxTile, bettahMult, comboPct } = computeParamsFromUpgrades(RESEARCH);
+  const { baseDamage, lives, maxTile, bettahMult, comboPct, goldenTiles } = computeParamsFromUpgrades(RESEARCH);
 
-  // Update derived display
   document.getElementById('derived-damage').textContent   = baseDamage.toFixed(2);
   document.getElementById('derived-max-tile').textContent = maxTile;
   document.getElementById('derived-bettah').textContent   = bettahMult.toFixed(3);
   document.getElementById('derived-lives').textContent    = lives;
   document.getElementById('derived-combo').textContent    = comboPct.toFixed(1) + '%';
+  document.getElementById('derived-golden').textContent   = goldenTiles;
 
   const qty1 = maxTile - 1;
   const qty3 = Math.round((bettahMult - 1.0) * 100.0);
@@ -1317,9 +1263,11 @@ function runCalc() {
   const comboRate = comboPct / 100.0;
   const p_up = upgradeProb(qty3);
   const dist = tileDistribution(qty1, qty3);
+
   document.getElementById('upgrade-pct').textContent = (p_up * 100).toFixed(1) + '%';
   document.getElementById('target-pts').textContent = target;
   document.getElementById('upgrade-info').style.display = 'flex';
+
   const tdEl = document.getElementById('tile-dist');
   tdEl.innerHTML = '';
   for (const tier in dist) {
@@ -1329,31 +1277,146 @@ function runCalc() {
     tdEl.appendChild(chip);
   }
   if (comboPct > 0) {
-    const comboChip = document.createElement('div');
-    comboChip.className = 'combo-chip mono';
-    comboChip.innerHTML = `⚡ +${comboPct.toFixed(1)}%/flip combo`;
-    tdEl.appendChild(comboChip);
+    const c = document.createElement('div');
+    c.className = 'combo-chip mono';
+    c.innerHTML = `⚡ +${comboPct.toFixed(1)}%/flip combo`;
+    tdEl.appendChild(c);
   }
+  if (goldenTiles > 0) {
+    const c = document.createElement('div');
+    c.className = 'golden-chip mono';
+    c.innerHTML = `✦ ${goldenTiles} golden tile${goldenTiles > 1 ? 's' : ''}`;
+    tdEl.appendChild(c);
+  }
+
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('results-content').style.display = 'none';
   document.getElementById('stats-row').style.display = 'none';
   document.getElementById('precision-control').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
+
   setTimeout(() => {
-    const { results, bestK, bestWin, safeTiles } = evaluateGameExact(target, lives, BOARD_SIZE, BOMBS, dist, comboRate, OPPONENT_HP, baseDamage);
-    lastResults = { results, bestK, bestWin, safeTiles };
+    const calcResult = evaluateGameExact(
+      target, lives, BOARD_SIZE, BOMBS, dist, comboRate,
+      OPPONENT_HP, baseDamage, goldenTiles
+    );
+    lastResults = calcResult;
     currentComboPct = comboPct;
+    currentGolden = goldenTiles;
     document.getElementById('loading').style.display = 'none';
     document.getElementById('results-content').style.display = 'block';
     document.getElementById('stats-row').style.display = 'grid';
     document.getElementById('precision-control').style.display = 'flex';
-    const effDmgHeader = document.querySelector('#results-table th:nth-child(3)');
-    if (effDmgHeader) effDmgHeader.style.display = comboPct > 0 ? '' : 'none';
     renderResults();
   }, 20);
 }
 
-// ─── Persistence & Theme ─────────────────────────────────────────────────────
+// ─── Optimizer ───────────────────────────────────────────────────────────────
+function formatDelta(deltaWin) {
+  const p = deltaWin * 100;
+  if (p >= 0.01)   return p.toFixed(4) + '%';
+  if (p >= 0.0001) return p.toFixed(6) + '%';
+  return p.toExponential(2) + '%';
+}
+
+function runOptimizer() {
+  const opponentHp = parseInt(document.getElementById('OPT_HP').value);
+  const bombs      = parseInt(document.getElementById('OPT_BOMBS').value);
+  const boardSize  = parseInt(document.getElementById('OPT_BOARD').value);
+  const research   = parseFloat(document.getElementById('OPT_RESEARCH').value) || 1;
+
+  const baseParams = computeParamsFromUpgrades(research);
+  const baseWin    = winForParams(baseParams, opponentHp, boardSize, bombs);
+
+  document.getElementById('opt-derived-panel').style.display = 'block';
+  document.getElementById('opt-d-dmg').textContent    = baseParams.baseDamage.toFixed(2);
+  document.getElementById('opt-d-lives').textContent  = baseParams.lives;
+  document.getElementById('opt-d-tile').textContent   = baseParams.maxTile;
+  document.getElementById('opt-d-bettah').textContent = baseParams.bettahMult.toFixed(3);
+  document.getElementById('opt-d-combo').textContent  = baseParams.comboPct.toFixed(1) + '%';
+  document.getElementById('opt-d-golden').textContent = baseParams.goldenTiles;
+  document.getElementById('opt-d-win').textContent    = (baseWin * 100).toFixed(3) + '%';
+
+  const rows = [];
+  UPGRADES.forEach(u => {
+    const rawName = u.name.replace(/ /g, '_');
+    const mapping = UPGRADE_PARAM_MAP[rawName];
+    const isMaxed = u.level >= u.maxLevel;
+    const cost = isMaxed ? null : upgradeCost(u.id, u.costScale, u.level);
+    if (!mapping) {
+      rows.push({ u, skip: true, reason: 'no calc effect', deltaWin: 0, efficiency: -Infinity, cost: null });
+      return;
+    }
+    if (isMaxed) {
+      rows.push({ u, skip: true, reason: 'maxed', deltaWin: 0, efficiency: -Infinity, cost: null });
+      return;
+    }
+    u.level += 1;
+    const newParams = computeParamsFromUpgrades(research);
+    const newWin    = winForParams(newParams, opponentHp, boardSize, bombs);
+    u.level -= 1;
+    const deltaWin   = newWin - baseWin;
+    const efficiency = cost > 0 ? deltaWin / cost : 0;
+    rows.push({ u, skip: false, deltaWin, efficiency, cost, newWin });
+  });
+
+  rows.sort((a, b) => {
+    if (a.skip && b.skip) return 0;
+    if (a.skip) return 1;
+    if (b.skip) return -1;
+    return b.efficiency - a.efficiency;
+  });
+
+  const maxEff = Math.max(...rows.filter(r => !r.skip).map(r => r.efficiency), 0);
+  const actionable = rows.filter(r => !r.skip && r.deltaWin > 0).slice(0, 10);
+
+  if (actionable.length === 0) {
+    document.getElementById('opt-tbody').innerHTML =
+      `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No upgrade improves win chance for this configuration.</td></tr>`;
+    document.getElementById('opt-empty').style.display = 'none';
+    document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
+    return;
+  }
+
+  let rank = 1;
+  let html = '';
+  actionable.forEach(r => {
+    const { u, deltaWin, efficiency, cost } = r;
+    const isBest = rank === 1;
+    const costStr = formatNum(cost);
+    const deltaStr = `<span class="delta-pos">+${formatDelta(deltaWin)}</span>`;
+    const effStr = efficiency > 0
+      ? (efficiency * 100 * 1e6).toExponential(2) + '<span style="color:var(--text-muted);font-size:0.7rem"> Δ%/M</span>'
+      : '';
+    const barW = maxEff > 0 ? (efficiency / maxEff * 100).toFixed(1) : 0;
+    const barHtml = `<div class="bar-bg" style="height:6px"><div class="bar-fill" style="width:${barW}%;${isBest ? 'background-color:var(--success)' : ''}"></div></div>`;
+    html += `<tr class="${isBest ? 'opt-best' : ''}">
+      <td class="opt-rank">${rank}${isBest ? '<span class="opt-badge">BEST</span>' : ''}</td>
+      <td class="opt-upg-name">${u.name}</td>
+      <td class="mono" style="color:var(--text-muted);font-size:0.75rem">${u.level} → ${u.level + 1}</td>
+      <td class="cost-cell">${costStr}</td>
+      <td>${deltaStr}</td>
+      <td class="mono" style="font-size:0.75rem">${effStr}</td>
+      <td class="eff-bar-wrap">${barHtml}</td>
+    </tr>`;
+    rank++;
+  });
+
+  document.getElementById('opt-tbody').innerHTML = html;
+  document.getElementById('opt-empty').style.display = 'none';
+  document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
+}
+
+// ─── Tab Switching ────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'upgrades') renderUpgrades();
+}
+
+// ─── Persistence & Theme ──────────────────────────────────────────────────────
 const STORAGE_KEY = 'depth_charge_cfg';
 const THEME_KEY = 'depth_charge_theme';
 const FIELDS = ['BOARD_SIZE','BOMBS','OPPONENT_HP','RESEARCH_MULT','OPT_HP','OPT_BOMBS','OPT_BOARD','OPT_RESEARCH'];
@@ -1380,7 +1443,9 @@ function toggleTheme() {
   setTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
 }
 FIELDS.forEach(id => document.getElementById(id).addEventListener('input', saveInputs));
-document.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('tab-calculator').classList.contains('active')) runCalc(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('tab-calculator').classList.contains('active')) runCalc();
+});
 const savedTheme = localStorage.getItem(THEME_KEY);
 if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) setTheme(true);
 else setTheme(false);
