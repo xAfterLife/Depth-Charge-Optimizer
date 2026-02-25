@@ -167,7 +167,6 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--focus-ring);
   }
-  /* Golden tile input gets gold styling */
   input[type="number"].golden-input:focus {
     border-color: var(--gold-border);
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
@@ -338,7 +337,6 @@
   }
   .prec-btn:hover:not(.active) { background-color: var(--accent-light); }
 
-  /* Golden tile section in sidebar */
   .golden-section {
     border: 1px solid var(--gold-border);
     border-radius: 8px;
@@ -589,6 +587,30 @@
     height: 100%; color: var(--text-muted); font-size: 0.875rem;
   }
 
+  /* ── Accept button ── */
+  .accept-btn {
+    padding: 0.25rem 0.65rem;
+    background-color: var(--success);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.03em;
+  }
+  .accept-btn:hover { opacity: 0.85; transform: scale(1.04); }
+  .accept-btn:active { transform: scale(0.97); }
+  /* flash animation on row after accept */
+  @keyframes rowFlash {
+    0%   { background-color: var(--success-light); }
+    60%  { background-color: var(--success-light); }
+    100% { background-color: transparent; }
+  }
+  .row-accepted { animation: rowFlash 0.6s ease-out forwards; }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
@@ -649,7 +671,6 @@
             <span class="field-hint">e.g. 1.17</span>
           </div>
         </div>
-        <!-- Derived from Upgrades tab -->
         <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.4rem;">
           <div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem">From Upgrades</div>
           <div class="derived-row"><span>Base Damage / Point</span><span class="mono" id="derived-damage">—</span></div>
@@ -704,7 +725,6 @@
                 <th style="width: 12%">Flips</th>
                 <th style="width: 20%">Win Rate</th>
                 <th id="th-combo" style="width: 12%; display:none">Combo ×</th>
-
                 <th>Probability Visual</th>
               </tr>
             </thead>
@@ -798,7 +818,8 @@
                 <th>Cost</th>
                 <th>Win Δ</th>
                 <th>Efficiency (Δ%/cost)</th>
-                <th style="width:160px">Gain Bar</th>
+                <th style="width:140px">Gain Bar</th>
+                <th style="width:80px">Accept</th>
               </tr>
             </thead>
             <tbody id="opt-tbody"></tbody>
@@ -1005,6 +1026,19 @@ function sortUpgrades(col) {
   renderUpgrades();
 }
 
+// ─── Accept upgrade from Optimizer ──────────────────────────────────────────
+// Bumps level by 1, persists, re-runs optimizer in-place.
+function acceptUpgrade(upgradeId, rowEl) {
+  const u = UPGRADES[upgradeId];
+  if (!u || u.level >= u.maxLevel) return;
+  u.level += 1;
+  saveLevels(UPGRADES);
+  // Flash the row before re-render
+  rowEl.classList.add('row-accepted');
+  // Re-run optimizer after animation frame so flash is visible
+  setTimeout(() => runOptimizer(), 100);
+}
+
 // ─── Upgrade → Param Mapping ─────────────────────────────────────────────────
 const UPGRADE_PARAM_MAP = {
   'Base_Damage_I':    { param: 'flatDmg',      type: 'flat' },
@@ -1020,7 +1054,6 @@ const UPGRADE_PARAM_MAP = {
   'Golden_Tiles':     { param: 'goldenTiles',  type: 'additive' },
 };
 
-// Compute all calculator params from current upgrade levels + research mult
 function computeParamsFromUpgrades(researchMult) {
   let flatDmg = 0;
   let multiDmg = 1.0;
@@ -1061,38 +1094,21 @@ function winForParams(params, opponentHp, boardSize, bombs) {
   return bestWin;
 }
 
-// ─── Golden Tile Score Contribution ─────────────────────────────────────────
-// Golden tiles are G guaranteed-safe clicks per game, used up once.
-// Each contributes one draw from the tile dist → total bonus = G * E[tile].
-// They do NOT change board size or bomb probability — the random rounds
-// play out on the full original board.
-//
-// The bonus reduces the score gap the random rounds must close:
-//   effectiveTarget = max(0, target - goldenBonus)
-//
-// For combo: golden tiles count as flips in the round they're clicked.
-// Since the game description says they're all clicked (used up) each game,
-// and the combo resets per turn, we treat them as clicked in round 1 alongside
-// the first k random flips, adding G to the combo count for that round only.
-
 function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate, opponentHp, baseDamage, goldenTiles) {
   goldenTiles = goldenTiles || 0;
   const G = Math.max(0, goldenTiles);
   const safeTiles = boardSize - bombs;
 
-  // E[tile] from dist — expected points per golden tile click
   let eTile = 0;
   for (const v in dist) eTile += Number(v) * dist[v];
-  const goldenBonus = G * eTile;  // expected total score contribution, used once
+  const goldenBonus = G * eTile;
 
   const results = {};
   let bestK = 1, bestWin = -1;
 
   for (let k = 1; k <= safeTiles; k++) {
-    // Board and survival are unchanged — golden tiles don't consume board slots
     const pSurvive = comb(safeTiles, k) / comb(boardSize, k);
 
-    // Score distribution for k random flips this round
     let scoreDist = { 0: 1.0 };
     for (let i = 0; i < k; i++) {
       const nd = {};
@@ -1105,23 +1121,14 @@ function evaluateGameExact(target, lives, boardSize, bombs, dist, comboRate, opp
       scoreDist = nd;
     }
 
-    // Combo applies to all flips in the turn.
-    // Golden tiles are clicked once (round 1), so add G to that round's flip count.
-    // For simplicity we add G to every round's combo since they were all clicked
-    // this game — the user is choosing k flips per round, golden tiles are
-    // an additional constant flip count that happened this game.
     const cm = 1.0 + comboRate * (G + k);
 
-    // Effective remaining target after subtracting guaranteed golden score.
-    // With combo, total damage per point = baseDamage * cm, so target in points
-    // is ceil(hp / (baseDamage * cm)). Golden bonus in those same units = goldenBonus.
     const roundTarget = comboRate > 0
       ? Math.ceil(opponentHp / (baseDamage * cm))
       : target;
     const capT = Math.max(0, roundTarget - Math.floor(goldenBonus));
 
     if (capT === 0) {
-      // Golden tiles alone beat the boss — guaranteed win
       results[k] = { win: 1.0, comboMult: cm };
       if (1.0 > bestWin) { bestWin = 1.0; bestK = k; }
       continue;
@@ -1372,7 +1379,7 @@ function runOptimizer() {
 
   if (actionable.length === 0) {
     document.getElementById('opt-tbody').innerHTML =
-      `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No upgrade improves win chance for this configuration.</td></tr>`;
+      `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem">No upgrade improves win chance for this configuration.</td></tr>`;
     document.getElementById('opt-empty').style.display = 'none';
     document.getElementById('opt-results').style.cssText = 'display:flex; flex:1; flex-direction:column; gap:1rem;';
     return;
@@ -1390,6 +1397,8 @@ function runOptimizer() {
       : '';
     const barW = maxEff > 0 ? (efficiency / maxEff * 100).toFixed(1) : 0;
     const barHtml = `<div class="bar-bg" style="height:6px"><div class="bar-fill" style="width:${barW}%;${isBest ? 'background-color:var(--success)' : ''}"></div></div>`;
+    // Accept button: onclick passes upgrade id and the row element itself
+    const acceptBtn = `<button class="accept-btn" onclick="acceptUpgrade(${u.id}, this.closest('tr'))">✓ Accept</button>`;
     html += `<tr class="${isBest ? 'opt-best' : ''}">
       <td class="opt-rank">${rank}${isBest ? '<span class="opt-badge">BEST</span>' : ''}</td>
       <td class="opt-upg-name">${u.name}</td>
@@ -1398,6 +1407,7 @@ function runOptimizer() {
       <td>${deltaStr}</td>
       <td class="mono" style="font-size:0.75rem">${effStr}</td>
       <td class="eff-bar-wrap">${barHtml}</td>
+      <td>${acceptBtn}</td>
     </tr>`;
     rank++;
   });
